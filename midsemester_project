@@ -46,7 +46,7 @@ def login(username, password):
     return False, None
 
 if not st.session_state.logged_in:
-    st.title("🔐 Login System")
+    st.title(" Login System")
 
     tab1, tab2 = st.tabs(["Login", "Register"])
 
@@ -87,7 +87,7 @@ else:
     page = st.sidebar.radio("Navigation", ["Dashboard", "Profile", "Settings", "Logout"])
 
     if page == "Dashboard":
-        st.title("📊 Dashboard")
+        st.title(" Dashboard")
 
         if user["role"] == "admin":
             st.subheader("Admin Dashboard")
@@ -97,12 +97,12 @@ else:
             st.write("Limited access.")
 
     elif page == "Profile":
-        st.title("👤 Profile")
+        st.title(" Profile")
         st.write(f"Username: {user['username']}")
         st.write(f"Role: {user['role']}")
 
     elif page == "Settings":
-        st.title("⚙️ Settings")
+        st.title(" Settings")
         st.write("Settings page (you can expand this)")
 
     elif page == "Logout":
