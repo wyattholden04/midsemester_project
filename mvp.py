@@ -300,7 +300,7 @@ def page_orders():
                     image_path = product.get("image")
 
                     if image_path:
-                        st.image(image_path, use_container_width=True)
+                        st.image(image_path, width=220)
 
                     st.write(f"**Price:** ${product['price']:.2f}")
                     st.write(f"**Available Stock:** {product['stock']}")
