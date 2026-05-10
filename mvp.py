@@ -17,23 +17,6 @@ CATEGORY_ICONS = {
     "Other": "🛒"
 }
 
-if not INVENTORY_FILE.exists():
-    default_inventory = [
-        {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22, "category": "Dairy & Eggs"},
-        {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21, "category": "Dairy & Eggs"},
-        {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20, "category": "Meat"},
-        {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18, "category": "Meat"},
-        {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19, "category": "Drinks"},
-        {"id": 6, "name": "Apples (3 lb Bag)", "price": 4.99, "stock": 25, "category": "Produce"},
-        {"id": 7, "name": "Bananas (1 Bunch)", "price": 1.99, "stock": 30, "category": "Produce"},
-        {"id": 8, "name": "Bread (White Loaf)", "price": 3.49, "stock": 16, "category": "Bakery"},
-        {"id": 9, "name": "Cheddar Cheese (8 oz)", "price": 3.99, "stock": 14, "category": "Dairy & Eggs"},
-        {"id": 10, "name": "Bottled Water (24 Pack)", "price": 5.99, "stock": 12, "category": "Drinks"},
-        {"id": 11, "name": "Greek Yogurt (32 oz)", "price": 4.79, "stock": 17, "category": "Dairy & Eggs"},
-        {"id": 12, "name": "Cereal (Family Size)", "price": 4.99, "stock": 15, "category": "Pantry"},
-    ]
-    INVENTORY_FILE.write_text(json.dumps(default_inventory, indent=4))
-
 if not USER_FILE.exists():
     USER_FILE.write_text(json.dumps([], indent=4))
 
@@ -129,7 +112,7 @@ def add_style():
             border-radius: 16px;
             border: 1px solid #eeeeee;
             box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
 
         .product-name {
@@ -137,12 +120,6 @@ def add_style():
             font-weight: 700;
             color: #1b5e20;
             margin-bottom: 6px;
-        }
-
-        .product-detail {
-            color: #555;
-            font-size: 15px;
-            margin-bottom: 4px;
         }
 
         .footer {
@@ -214,8 +191,8 @@ def page_inventory():
             st.markdown(f"""
                 <div class="product-card">
                     <div class="product-name">{icon} {item['name']}</div>
-                    <div class="product-detail">Category: <strong>{item.get('category', 'Other')}</strong></div>
-                    <div class="product-detail">Product ID: {item['id']}</div>
+                    <div>Category: <strong>{item.get('category', 'Other')}</strong></div>
+                    <div>Product ID: {item['id']}</div>
                 </div>
             """, unsafe_allow_html=True)
 
@@ -317,10 +294,16 @@ def page_orders():
                     st.markdown(f"""
                         <div class="product-card">
                             <div class="product-name">{product['name']}</div>
-                            <div class="product-detail">Price: <strong>${product['price']:.2f}</strong></div>
-                            <div class="product-detail">Available Stock: <strong>{product['stock']}</strong></div>
                         </div>
                     """, unsafe_allow_html=True)
+
+                    image_path = product.get("image")
+
+                    if image_path:
+                        st.image(image_path, use_container_width=True)
+
+                    st.write(f"**Price:** ${product['price']:.2f}")
+                    st.write(f"**Available Stock:** {product['stock']}")
 
                     if product["stock"] < 20:
                         st.warning("Low stock")
