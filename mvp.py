@@ -3,34 +3,45 @@ import pandas as pd
 import json
 from pathlib import Path
 
-st.set_page_config(page_title="Orders", layout="wide")
+st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
-USER_FILE      = Path("users.json")
+USER_FILE = Path("users.json")
 INVENTORY_FILE = Path("inventory.json")
 
 if not INVENTORY_FILE.exists():
     default_inventory = [
-        {"id": 1, "name": "Eggs (1 Dozen)",         "price": 2.25,  "stock": 22},
-        {"id": 2, "name": "Milk (1 Gallon)",         "price": 2.99,  "stock": 21},
-        {"id": 3, "name": "Ground Beef (1 lb)",      "price": 7.49,  "stock": 20},
+        {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22},
+        {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21},
+        {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20},
         {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18},
-        {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49,  "stock": 19},
+        {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19},
     ]
     INVENTORY_FILE.write_text(json.dumps(default_inventory, indent=4))
 
 if not USER_FILE.exists():
-    with open(USER_FILE, "w") as f:
-        json.dump([], f)
+    USER_FILE.write_text(json.dumps([], indent=4))
 
 
 def load_users():
-    with open(USER_FILE, "r") as f:
-        return json.load(f)
+    return json.loads(USER_FILE.read_text())
 
 
 def save_users(users):
-    with open(USER_FILE, "w") as f:
-        json.dump(users, f, indent=4)
+    USER_FILE.write_text(json.dumps(users, indent=4))
+
+
+def load_inventory():
+    try:
+        data = json.loads(INVENTORY_FILE.read_text())
+        if isinstance(data, list):
+            return data
+        return []
+    except Exception:
+        return []
+
+
+def save_inventory(data):
+    INVENTORY_FILE.write_text(json.dumps(data, indent=4))
 
 
 if "logged_in" not in st.session_state:
@@ -67,31 +78,74 @@ def login(username, password):
     return False, None
 
 
-def load_inventory():
-    if not INVENTORY_FILE.exists():
-        return []
+def add_style():
+    st.markdown("""
+        <style>
+        .main-title {
+            font-size: 46px;
+            font-weight: 800;
+            color: #2E8B57;
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
 
-    try:
-        data = json.loads(INVENTORY_FILE.read_text())
-        if not isinstance(data, list):
-            raise ValueError("inventory data is not a list")
-        return data
-    except Exception:
-        return []
+        .sub-title {
+            font-size: 20px;
+            color: #555555;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .welcome-box {
+            background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+            padding: 25px;
+            border-radius: 18px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0px 4px 14px rgba(0,0,0,0.12);
+        }
+
+        .welcome-box h3 {
+            color: #1b5e20;
+            margin-bottom: 8px;
+        }
+
+        .welcome-box p {
+            color: #444444;
+            font-size: 17px;
+        }
+
+        .section-card {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 3px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 
-def save_inventory(data):
-    INVENTORY_FILE.write_text(json.dumps(data, indent=4))
+def welcome_header(user):
+    st.markdown("""
+        <div class="main-title">🛒 Welcome to MISY350 Groceries</div>
+        <div class="sub-title">Fresh inventory. Simple orders. Smarter grocery management.</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="welcome-box">
+            <h3>Hello, {user['username']}!</h3>
+            <p>You are logged in as <strong>{user['role']}</strong>.</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 
 def page_inventory():
-    if "inventory" not in st.session_state:
-        st.session_state.inventory = load_inventory()
+    inventory = load_inventory()
 
-    st.title("Inventory Manager")
-    st.header("View & Adjust Inventory")
-
-    inventory = st.session_state.inventory
+    st.header("Inventory Manager")
+    st.write("View and adjust grocery inventory below.")
 
     search_query = st.text_input(
         "Search by item name",
@@ -108,8 +162,8 @@ def page_inventory():
     low_stock_count = sum(1 for i in inventory if i.get("stock", 0) < 20)
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Total Items in Catalogue", len(inventory))
-    m2.metric("Total Units in Stock", total_stock)
+    m1.metric("Total Items", len(inventory))
+    m2.metric("Units in Stock", total_stock)
     m3.metric("Low Stock Items", low_stock_count)
 
     st.markdown("---")
@@ -127,7 +181,7 @@ def page_inventory():
                 "Price ($)",
                 min_value=0.0,
                 max_value=9999.0,
-                value=item.get("price", 0.0),
+                value=float(item.get("price", 0.0)),
                 step=0.01,
                 format="%.2f",
                 key=f"price_{item['id']}"
@@ -137,7 +191,7 @@ def page_inventory():
                 "Stock",
                 min_value=0,
                 max_value=9999,
-                value=item.get("stock", 0),
+                value=int(item.get("stock", 0)),
                 step=1,
                 key=f"stock_{item['id']}"
             )
@@ -146,8 +200,8 @@ def page_inventory():
                 col_d.caption("⚠️ Low stock")
 
             if col_e.button("Save", key=f"save_{item['id']}"):
-                item["price"] = new_price
-                item["stock"] = new_stock
+                item["price"] = round(new_price, 2)
+                item["stock"] = int(new_stock)
                 save_inventory(inventory)
                 st.success(f"✅ '{item['name']}' updated.")
                 st.rerun()
@@ -160,9 +214,9 @@ def page_orders():
 
     if "orders" not in st.session_state:
         st.session_state.orders = [
-            {"order_id": 1, "customer": "Matt",  "item": "Eggs (1 Dozen)",     "quantity": 2, "total": 4.50,  "status": "Placed"},
-            {"order_id": 2, "customer": "Sarah", "item": "Milk (1 Gallon)",    "quantity": 1, "total": 2.99,  "status": "Completed"},
-            {"order_id": 3, "customer": "Jake",  "item": "Ground Beef (1 lb)", "quantity": 3, "total": 22.47, "status": "Placed"}
+            {"order_id": 1, "customer": "Matt", "item": "Eggs (1 Dozen)", "quantity": 2, "total": 4.50, "status": "Placed"},
+            {"order_id": 2, "customer": "Sarah", "item": "Milk (1 Gallon)", "quantity": 1, "total": 2.99, "status": "Completed"},
+            {"order_id": 3, "customer": "Jake", "item": "Ground Beef (1 lb)", "quantity": 3, "total": 22.47, "status": "Placed"}
         ]
 
     if "next_order_id" not in st.session_state:
@@ -174,13 +228,12 @@ def page_orders():
                 return product
         return None
 
-    st.title("Orders")
+    st.header("Orders")
+    st.write("Place and view grocery orders below.")
 
-    tab1, tab2 = st.tabs(["Orders", "Place Order"])
+    tab1, tab2 = st.tabs(["Order List", "Place Order"])
 
     with tab1:
-        st.subheader("Order List")
-
         df_orders = pd.DataFrame(st.session_state.orders)
 
         status_filter = st.selectbox(
@@ -194,9 +247,8 @@ def page_orders():
         st.dataframe(df_orders, use_container_width=True)
 
     with tab2:
-        st.subheader("Place Order")
-
         customer = st.text_input("Customer Name")
+
         product_names = [product["name"] for product in inventory]
 
         selected_product = st.selectbox("Select Product", product_names)
@@ -204,15 +256,17 @@ def page_orders():
         product = get_product(selected_product)
 
         if product:
+            st.info(f"Available Stock: {product['stock']} | Price: ${product['price']:.2f}")
+
             quantity = st.number_input(
                 "Quantity",
                 min_value=1,
-                max_value=product["stock"],
+                max_value=int(product["stock"]),
                 step=1
             )
 
             total = quantity * product["price"]
-            st.write(f"Total: ${total:.2f}")
+            st.success(f"Total: ${total:.2f}")
 
             if st.button("Submit Order"):
                 if customer.strip() == "":
@@ -232,13 +286,19 @@ def page_orders():
                     st.rerun()
 
 
+add_style()
+
 if not st.session_state.logged_in:
-    st.title("Login System")
+    st.markdown("""
+        <div class="main-title">🛒 MISY350 Groceries</div>
+        <div class="sub-title">Login or register to manage groceries and orders.</div>
+    """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Login", "Register"])
 
     with tab1:
         st.subheader("Login")
+
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
 
@@ -255,9 +315,9 @@ if not st.session_state.logged_in:
 
     with tab2:
         st.subheader("Register")
+
         new_user = st.text_input("Create Username")
         new_pass = st.text_input("Create Password", type="password")
-
         role = st.selectbox("Select Role", ["user", "admin"])
 
         if st.button("Register"):
@@ -270,6 +330,8 @@ if not st.session_state.logged_in:
 
 else:
     user = st.session_state.user
+
+    welcome_header(user)
 
     st.sidebar.title(f"Welcome, {user['username']}")
 
@@ -285,12 +347,12 @@ else:
             page_orders()
 
     elif page == "Profile":
-        st.title("Profile")
+        st.header("Profile")
         st.write(f"Username: {user['username']}")
         st.write(f"Role: {user['role']}")
 
     elif page == "Settings":
-        st.title("Settings")
+        st.header("Settings")
         st.write("Settings page")
 
     elif page == "Logout":
