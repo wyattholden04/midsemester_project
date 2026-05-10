@@ -5,7 +5,7 @@ from pathlib import Path
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
 USER_FILE = Path("users.json")
-INVENTORY_FILE = Path("inventory.json")
+INVENTORY_FILE = Path("inventory.project.json")
 
 if not INVENTORY_FILE.exists():
     default_inventory = [
