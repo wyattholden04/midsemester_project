@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 from pathlib import Path
+from openai import OpenAI
 
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
@@ -407,6 +408,64 @@ def page_cart():
             st.rerun()
 
 
+def page_ai_assistant():
+    st.header("🤖 AI Grocery Assistant")
+
+    st.write(
+        "Ask for grocery ideas, budget-friendly suggestions, meal ideas, "
+        "or questions about current inventory."
+    )
+
+    inventory = load_inventory()
+
+    inventory_text = ""
+    for item in inventory:
+        inventory_text += (
+            f"- {item['name']} | Category: {item.get('category', 'Other')} | "
+            f"Price: ${item['price']} | Stock: {item['stock']}\n"
+        )
+
+    user_question = st.text_input(
+        "Ask the assistant:",
+        placeholder="Example: What should I buy for breakfast?"
+    )
+
+    if st.button("Ask AI"):
+        if user_question.strip() == "":
+            st.error("Please enter a question.")
+            return
+
+        if "OPENAI_API_KEY" not in st.secrets:
+            st.error("Missing OPENAI_API_KEY in Streamlit secrets.")
+            return
+
+        try:
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+            response = client.responses.create(
+                model="gpt-4.1-mini",
+                input=f"""
+You are the AI Grocery Assistant for MISY350 Groceries.
+
+Use only the inventory below when making recommendations.
+
+Current inventory:
+{inventory_text}
+
+User question:
+{user_question}
+
+Give a helpful answer in 3-6 sentences. Mention item names, prices, and stock when useful.
+"""
+            )
+
+            st.success(response.output_text)
+
+        except Exception as e:
+            st.error("The AI assistant could not respond.")
+            st.write(e)
+
+
 def page_profile(user):
     st.header("👤 User Profile")
 
@@ -490,6 +549,18 @@ if not st.session_state.logged_in:
         <div class="sub-title">Your campus grocery management system</div>
     """, unsafe_allow_html=True)
 
+    st.info("""
+    **Test Accounts**
+
+    **User Account**  
+    Username: `user@test.com`  
+    Password: `user123`
+
+    **Admin Account**  
+    Username: `admin@test.com`  
+    Password: `admin123`
+    """)
+
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
 
     with tab1:
@@ -537,12 +608,15 @@ else:
     welcome_header(user)
 
     if user["role"] == "admin":
-        inventory_tab, profile_tab, logout_tab = st.tabs(
-            ["📦 Inventory", "👤 Profile", "🚪 Logout"]
+        inventory_tab, ai_tab, profile_tab, logout_tab = st.tabs(
+            ["📦 Inventory", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
         )
 
         with inventory_tab:
             page_inventory()
+
+        with ai_tab:
+            page_ai_assistant()
 
         with profile_tab:
             page_profile(user)
@@ -553,8 +627,8 @@ else:
             logout_button()
 
     else:
-        shop_tab, cart_tab, profile_tab, logout_tab = st.tabs(
-            ["🛍️ Shop", "🛒 Cart", "👤 Profile", "🚪 Logout"]
+        shop_tab, cart_tab, ai_tab, profile_tab, logout_tab = st.tabs(
+            ["🛍️ Shop", "🛒 Cart", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
         )
 
         with shop_tab:
@@ -562,6 +636,9 @@ else:
 
         with cart_tab:
             page_cart()
+
+        with ai_tab:
+            page_ai_assistant()
 
         with profile_tab:
             page_profile(user)
