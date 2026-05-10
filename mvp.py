@@ -7,6 +7,16 @@ st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 USER_FILE = Path("users.json")
 INVENTORY_FILE = Path("inventory.project.json")
 
+CATEGORY_ICONS = {
+    "Dairy & Eggs": "🥛",
+    "Meat": "🥩",
+    "Drinks": "🥤",
+    "Produce": "🍎",
+    "Bakery": "🍞",
+    "Pantry": "🥫",
+    "Other": "🛒"
+}
+
 if not INVENTORY_FILE.exists():
     default_inventory = [
         {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22, "category": "Dairy & Eggs"},
@@ -85,8 +95,8 @@ def add_style():
     st.markdown("""
         <style>
         .main-title {
-            font-size: 46px;
-            font-weight: 800;
+            font-size: 48px;
+            font-weight: 900;
             color: #2E8B57;
             text-align: center;
             margin-bottom: 5px;
@@ -96,20 +106,52 @@ def add_style():
             font-size: 20px;
             color: #555;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
 
         .welcome-box {
             background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
-            padding: 25px;
+            padding: 24px;
             border-radius: 18px;
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             box-shadow: 0px 4px 14px rgba(0,0,0,0.12);
         }
 
         .welcome-box h3 {
             color: #1b5e20;
+            margin-bottom: 5px;
+        }
+
+        .product-card {
+            background-color: #ffffff;
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid #eeeeee;
+            box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+        }
+
+        .product-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1b5e20;
+            margin-bottom: 6px;
+        }
+
+        .product-detail {
+            color: #555;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .footer {
+            text-align: center;
+            color: #777;
+            margin-top: 45px;
+            padding-top: 20px;
+            border-top: 1px solid #eeeeee;
+            font-size: 14px;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -118,13 +160,21 @@ def add_style():
 def welcome_header(user):
     st.markdown("""
         <div class="main-title">🛒 Welcome to MISY350 Groceries</div>
-        <div class="sub-title">Fresh inventory. Simple orders. Smarter grocery management.</div>
+        <div class="sub-title">Your campus grocery management system</div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
         <div class="welcome-box">
             <h3>Welcome, {user['username']}!</h3>
-            <p>You are logged in as <strong>{user['role']}</strong>.</p>
+            <p>System Status: <strong>Active</strong> | Access Type: <strong>{user['role']}</strong></p>
+        </div>
+    """, unsafe_allow_html=True)
+
+
+def footer():
+    st.markdown("""
+        <div class="footer">
+            MISY350 Groceries © 2026 | Built with Streamlit
         </div>
     """, unsafe_allow_html=True)
 
@@ -132,7 +182,7 @@ def welcome_header(user):
 def page_inventory():
     inventory = load_inventory()
 
-    st.header("Admin Inventory Manager")
+    st.header("📦 Admin Inventory Manager")
 
     categories = ["All"] + sorted(set(item.get("category", "Other") for item in inventory))
     selected_category = st.selectbox("Filter by Category", categories)
@@ -159,13 +209,19 @@ def page_inventory():
         st.warning("No items found.")
     else:
         for item in filtered:
-            col_a, col_b, col_c, col_d, col_e, col_f = st.columns([3, 2, 2, 2, 2, 1])
+            icon = CATEGORY_ICONS.get(item.get("category", "Other"), "🛒")
 
-            col_a.write(f"**{item['name']}**")
-            col_b.write(f"ID: `{item['id']}`")
-            col_c.write(f"Category: **{item['category']}**")
+            st.markdown(f"""
+                <div class="product-card">
+                    <div class="product-name">{icon} {item['name']}</div>
+                    <div class="product-detail">Category: <strong>{item.get('category', 'Other')}</strong></div>
+                    <div class="product-detail">Product ID: {item['id']}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            new_price = col_d.number_input(
+            col1, col2, col3 = st.columns([2, 2, 1])
+
+            new_price = col1.number_input(
                 "Price ($)",
                 min_value=0.0,
                 value=float(item["price"]),
@@ -174,7 +230,7 @@ def page_inventory():
                 key=f"price_{item['id']}"
             )
 
-            new_stock = col_e.number_input(
+            new_stock = col2.number_input(
                 "Stock",
                 min_value=0,
                 value=int(item["stock"]),
@@ -183,9 +239,9 @@ def page_inventory():
             )
 
             if item["stock"] < 20:
-                col_e.caption("⚠️ Low stock")
+                st.warning("⚠️ Low stock item")
 
-            if col_f.button("Save", key=f"save_{item['id']}"):
+            if col3.button("Save", key=f"save_{item['id']}"):
                 item["price"] = round(new_price, 2)
                 item["stock"] = int(new_stock)
                 save_inventory(inventory)
@@ -196,122 +252,128 @@ def page_inventory():
             st.divider()
 
 
+def add_to_cart(product, quantity):
+    for cart_item in st.session_state.cart:
+        if cart_item["id"] == product["id"]:
+            new_quantity = cart_item["quantity"] + int(quantity)
+
+            if new_quantity > product["stock"]:
+                st.error("You cannot add more than the available stock.")
+            else:
+                cart_item["quantity"] = new_quantity
+                cart_item["total"] = round(cart_item["quantity"] * cart_item["price"], 2)
+                st.success(f"{product['name']} quantity updated in cart.")
+
+            return
+
+    st.session_state.cart.append({
+        "id": product["id"],
+        "name": product["name"],
+        "category": product.get("category", "Other"),
+        "price": product["price"],
+        "quantity": int(quantity),
+        "total": round(quantity * product["price"], 2)
+    })
+
+    st.success(f"{product['name']} added to cart.")
+
+
 def page_orders():
     inventory = load_inventory()
 
-    st.header("Shop Groceries")
+    st.header("🛍️ Shop Groceries")
 
     customer = st.session_state.user["username"]
     st.write(f"Ordering as: **{customer}**")
 
     categories = sorted(
-        set(
-            item.get("category", "Other")
-            for item in inventory
-            if item["stock"] > 0
-        )
+        set(item.get("category", "Other") for item in inventory if item["stock"] > 0)
     )
 
     if not categories:
         st.warning("No products currently in stock.")
         return
 
-    tabs = st.tabs(categories)
+    category_labels = [
+        f"{CATEGORY_ICONS.get(category, '🛒')} {category}"
+        for category in categories
+    ]
+
+    tabs = st.tabs(category_labels)
 
     for tab, category in zip(tabs, categories):
         with tab:
-            st.subheader(category)
+            st.subheader(f"{CATEGORY_ICONS.get(category, '🛒')} {category}")
 
             category_items = [
                 item for item in inventory
                 if item["stock"] > 0 and item.get("category", "Other") == category
             ]
 
-            product_names = [item["name"] for item in category_items]
+            columns = st.columns(3)
 
-            selected_product = st.selectbox(
-                "Select Product",
-                product_names,
-                key=f"product_{category}"
-            )
+            for index, product in enumerate(category_items):
+                with columns[index % 3]:
+                    st.markdown(f"""
+                        <div class="product-card">
+                            <div class="product-name">{product['name']}</div>
+                            <div class="product-detail">Price: <strong>${product['price']:.2f}</strong></div>
+                            <div class="product-detail">Available Stock: <strong>{product['stock']}</strong></div>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-            product = None
+                    if product["stock"] < 20:
+                        st.warning("Low stock")
 
-            for item in category_items:
-                if item["name"] == selected_product:
-                    product = item
-                    break
+                    quantity = st.number_input(
+                        "Quantity",
+                        min_value=1,
+                        max_value=int(product["stock"]),
+                        step=1,
+                        key=f"quantity_{product['id']}"
+                    )
 
-            if product:
-                st.info(
-                    f"Available Stock: {product['stock']} | "
-                    f"Price: ${product['price']:.2f}"
-                )
+                    st.write(f"Item Total: **${quantity * product['price']:.2f}**")
 
-                quantity = st.number_input(
-                    "Quantity",
-                    min_value=1,
-                    max_value=int(product["stock"]),
-                    step=1,
-                    key=f"quantity_{category}"
-                )
-
-                total = quantity * product["price"]
-                st.success(f"Item Total: ${total:.2f}")
-
-                if st.button("Add to Cart", key=f"add_{category}"):
-                    item_already_in_cart = False
-
-                    for cart_item in st.session_state.cart:
-                        if cart_item["id"] == product["id"]:
-                            new_quantity = cart_item["quantity"] + int(quantity)
-
-                            if new_quantity > product["stock"]:
-                                st.error("You cannot add more than the available stock.")
-                            else:
-                                cart_item["quantity"] = new_quantity
-                                cart_item["total"] = round(cart_item["quantity"] * cart_item["price"], 2)
-                                st.success(f"{product['name']} quantity updated in cart.")
-
-                            item_already_in_cart = True
-                            break
-
-                    if not item_already_in_cart:
-                        st.session_state.cart.append({
-                            "id": product["id"],
-                            "name": product["name"],
-                            "category": product["category"],
-                            "price": product["price"],
-                            "quantity": int(quantity),
-                            "total": round(total, 2)
-                        })
-
-                        st.success(f"{product['name']} added to cart.")
+                    if st.button("Add to Cart", key=f"add_{product['id']}"):
+                        add_to_cart(product, quantity)
 
 
 def page_cart():
-    st.header("🛒 Your Cart")
+    st.header("🛒 Cart & Checkout")
 
     if not st.session_state.cart:
         st.info("Your cart is empty.")
         return
 
+    st.subheader("Order Summary")
+
     cart_total = sum(item["total"] for item in st.session_state.cart)
+    total_items = sum(item["quantity"] for item in st.session_state.cart)
+
+    col_a, col_b = st.columns(2)
+    col_a.metric("Total Items", total_items)
+    col_b.metric("Estimated Total", f"${cart_total:.2f}")
+
+    st.markdown("---")
 
     for index, item in enumerate(st.session_state.cart):
         col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
         col1.write(f"**{item['name']}**")
-        col2.write(f"Category: {item['category']}")
+        col2.write(f"{CATEGORY_ICONS.get(item['category'], '🛒')} {item['category']}")
         col3.write(f"Qty: {item['quantity']}")
-        col4.write(f"Total: ${item['total']:.2f}")
+        col4.write(f"${item['total']:.2f}")
 
         if col5.button("Remove", key=f"remove_{index}"):
             st.session_state.cart.pop(index)
             st.rerun()
 
     st.markdown("---")
-    st.subheader(f"Cart Total: ${cart_total:.2f}")
+
+    st.subheader("Checkout")
+    st.write(f"Subtotal: **${cart_total:.2f}**")
+    st.write(f"Estimated Total: **${cart_total:.2f}**")
 
     col_place, col_clear = st.columns(2)
 
@@ -348,8 +410,6 @@ def page_cart():
 def page_profile(user):
     st.header("👤 User Profile")
 
-    st.markdown("---")
-
     col1, col2 = st.columns(2)
 
     with col1:
@@ -363,12 +423,11 @@ def page_profile(user):
             st.info("Access Level: Grocery Ordering")
 
     with col2:
-        st.subheader("Shopping Statistics")
-
+        st.subheader("Activity")
         cart_items = len(st.session_state.cart)
         cart_total = sum(item["total"] for item in st.session_state.cart)
 
-        st.metric("Items Currently in Cart", cart_items)
+        st.metric("Items in Cart", cart_items)
         st.metric("Current Cart Total", f"${cart_total:.2f}")
 
     st.markdown("---")
@@ -379,26 +438,18 @@ def page_profile(user):
 
     if st.button("Update Username"):
         users = load_users()
-
-        username_taken = False
-
-        for existing_user in users:
-            if existing_user["username"] == new_username:
-                username_taken = True
+        username_taken = any(existing_user["username"] == new_username for existing_user in users)
 
         if new_username.strip() == "":
             st.error("Username cannot be empty.")
-
         elif username_taken:
             st.error("Username already exists.")
-
         else:
             for existing_user in users:
                 if existing_user["username"] == user["username"]:
                     existing_user["username"] = new_username
 
             save_users(users)
-
             st.session_state.user["username"] = new_username
 
             st.success("Username updated successfully.")
@@ -409,12 +460,9 @@ def page_profile(user):
     st.subheader("System Information")
     st.write("**Application:** MISY350 Groceries")
     st.write("**Version:** 1.0 MVP")
-    st.write("**Platform:** Streamlit")
-    st.write("**Database Type:** JSON File Storage")
+    st.write("**System Status:** Active")
 
     st.markdown("---")
-
-    st.subheader("Account Actions")
 
     if user["role"] == "user":
         if st.button("Clear Shopping Cart"):
@@ -422,7 +470,7 @@ def page_profile(user):
             st.success("Shopping cart cleared.")
             st.rerun()
     else:
-        st.write("Admins can manage inventory from the dashboard.")
+        st.write("Admins can manage inventory from the Inventory tab.")
 
 
 def logout_button():
@@ -439,13 +487,13 @@ add_style()
 if not st.session_state.logged_in:
     st.markdown("""
         <div class="main-title">🛒 MISY350 Groceries</div>
-        <div class="sub-title">Login or register to continue.</div>
+        <div class="sub-title">Your campus grocery management system</div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
 
     with tab1:
-        st.subheader("Login")
+        st.subheader("Welcome Back")
 
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -463,7 +511,7 @@ if not st.session_state.logged_in:
                 st.error("Invalid credentials.")
 
     with tab2:
-        st.subheader("Register")
+        st.subheader("Create an Account")
 
         new_user = st.text_input("Create Username")
         new_pass = st.text_input("Create Password", type="password")
@@ -481,33 +529,35 @@ if not st.session_state.logged_in:
                 else:
                     st.error(message)
 
+    footer()
+
 else:
     user = st.session_state.user
 
     welcome_header(user)
 
     if user["role"] == "admin":
-        dashboard_tab, profile_tab, logout_tab = st.tabs(
-            ["Dashboard", "Profile", "Logout"]
+        inventory_tab, profile_tab, logout_tab = st.tabs(
+            ["📦 Inventory", "👤 Profile", "🚪 Logout"]
         )
 
-        with dashboard_tab:
+        with inventory_tab:
             page_inventory()
 
         with profile_tab:
             page_profile(user)
 
         with logout_tab:
-            st.header("Logout")
+            st.header("🚪 Logout")
             st.write("Click below to log out of MISY350 Groceries.")
             logout_button()
 
     else:
-        dashboard_tab, cart_tab, profile_tab, logout_tab = st.tabs(
-            ["Dashboard", "Cart", "Profile", "Logout"]
+        shop_tab, cart_tab, profile_tab, logout_tab = st.tabs(
+            ["🛍️ Shop", "🛒 Cart", "👤 Profile", "🚪 Logout"]
         )
 
-        with dashboard_tab:
+        with shop_tab:
             page_orders()
 
         with cart_tab:
@@ -517,6 +567,8 @@ else:
             page_profile(user)
 
         with logout_tab:
-            st.header("Logout")
+            st.header("🚪 Logout")
             st.write("Click below to log out of MISY350 Groceries.")
             logout_button()
+
+    footer()
