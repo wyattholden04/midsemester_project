@@ -205,12 +205,10 @@ def page_inventory():
 def page_orders():
     inventory = load_inventory()
 
-    st.header("Place Grocery Order")
+    st.header("Shop Groceries")
 
     customer = st.session_state.user["username"]
     st.write(f"Ordering as: **{customer}**")
-
-    st.subheader("Shop by Category")
 
     categories = sorted(
         set(
@@ -297,61 +295,63 @@ def page_orders():
 
                         st.success(f"{product['name']} added to cart.")
 
-    st.markdown("---")
+
+def page_cart():
     st.header("🛒 Your Cart")
 
     if not st.session_state.cart:
         st.info("Your cart is empty.")
-    else:
-        cart_total = sum(item["total"] for item in st.session_state.cart)
+        return
 
-        for index, item in enumerate(st.session_state.cart):
-            col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
+    cart_total = sum(item["total"] for item in st.session_state.cart)
 
-            col1.write(f"**{item['name']}**")
-            col2.write(f"Category: {item['category']}")
-            col3.write(f"Qty: {item['quantity']}")
-            col4.write(f"Total: ${item['total']:.2f}")
+    for index, item in enumerate(st.session_state.cart):
+        col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
-            if col5.button("Remove", key=f"remove_{index}"):
-                st.session_state.cart.pop(index)
-                st.rerun()
+        col1.write(f"**{item['name']}**")
+        col2.write(f"Category: {item['category']}")
+        col3.write(f"Qty: {item['quantity']}")
+        col4.write(f"Total: ${item['total']:.2f}")
 
-        st.markdown("---")
-        st.subheader(f"Cart Total: ${cart_total:.2f}")
+        if col5.button("Remove", key=f"remove_{index}"):
+            st.session_state.cart.pop(index)
+            st.rerun()
 
-        col_place, col_clear = st.columns(2)
+    st.markdown("---")
+    st.subheader(f"Cart Total: ${cart_total:.2f}")
 
-        with col_place:
-            if st.button("Place Order"):
-                inventory = load_inventory()
+    col_place, col_clear = st.columns(2)
 
-                enough_stock = True
+    with col_place:
+        if st.button("Place Order"):
+            inventory = load_inventory()
 
+            enough_stock = True
+
+            for cart_item in st.session_state.cart:
+                for inventory_item in inventory:
+                    if inventory_item["id"] == cart_item["id"]:
+                        if cart_item["quantity"] > inventory_item["stock"]:
+                            enough_stock = False
+                            st.error(f"Not enough stock for {cart_item['name']}.")
+
+            if enough_stock:
                 for cart_item in st.session_state.cart:
                     for inventory_item in inventory:
                         if inventory_item["id"] == cart_item["id"]:
-                            if cart_item["quantity"] > inventory_item["stock"]:
-                                enough_stock = False
-                                st.error(f"Not enough stock for {cart_item['name']}.")
+                            inventory_item["stock"] -= cart_item["quantity"]
 
-                if enough_stock:
-                    for cart_item in st.session_state.cart:
-                        for inventory_item in inventory:
-                            if inventory_item["id"] == cart_item["id"]:
-                                inventory_item["stock"] -= cart_item["quantity"]
+                save_inventory(inventory)
 
-                    save_inventory(inventory)
-
-                    st.session_state.cart = []
-
-                    st.success("Order placed successfully! Inventory updated.")
-                    st.rerun()
-
-        with col_clear:
-            if st.button("Clear Cart"):
                 st.session_state.cart = []
+
+                st.success("Order placed successfully! Inventory updated.")
                 st.rerun()
+
+    with col_clear:
+        if st.button("Clear Cart"):
+            st.session_state.cart = []
+            st.rerun()
 
 
 add_style()
@@ -415,21 +415,28 @@ else:
 
     st.sidebar.title(f"Welcome, {user['username']}")
 
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Dashboard", "Profile", "Logout"]
-    )
+    if user["role"] == "admin":
+        page = st.sidebar.radio(
+            "Navigation",
+            ["Dashboard", "Profile", "Logout"]
+        )
+    else:
+        page = st.sidebar.radio(
+            "Navigation",
+            ["Dashboard", "Cart", "Profile", "Logout"]
+        )
 
     if page == "Dashboard":
         if user["role"] == "admin":
             page_inventory()
-
         elif user["role"] == "user":
             page_orders()
 
+    elif page == "Cart":
+        page_cart()
+
     elif page == "Profile":
         st.header("Profile")
-
         st.write(f"Username: {user['username']}")
         st.write(f"Role: {user['role']}")
 
