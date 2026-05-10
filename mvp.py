@@ -373,6 +373,39 @@ def page_profile(user):
 
     st.markdown("---")
 
+    st.subheader("Change Username")
+
+    new_username = st.text_input("Enter New Username")
+
+    if st.button("Update Username"):
+        users = load_users()
+
+        username_taken = False
+
+        for existing_user in users:
+            if existing_user["username"] == new_username:
+                username_taken = True
+
+        if new_username.strip() == "":
+            st.error("Username cannot be empty.")
+
+        elif username_taken:
+            st.error("Username already exists.")
+
+        else:
+            for existing_user in users:
+                if existing_user["username"] == user["username"]:
+                    existing_user["username"] = new_username
+
+            save_users(users)
+
+            st.session_state.user["username"] = new_username
+
+            st.success("Username updated successfully.")
+            st.rerun()
+
+    st.markdown("---")
+
     st.subheader("System Information")
     st.write("**Application:** MISY350 Groceries")
     st.write("**Version:** 1.0 MVP")
