@@ -135,13 +135,9 @@ def page_inventory():
     st.header("Admin Inventory Manager")
 
     categories = ["All"] + sorted(set(item.get("category", "Other") for item in inventory))
-
     selected_category = st.selectbox("Filter by Category", categories)
 
-    search_query = st.text_input(
-        "Search Inventory",
-        placeholder="Search items..."
-    )
+    search_query = st.text_input("Search Inventory", placeholder="Search items...")
 
     filtered = [
         item for item in inventory
@@ -153,7 +149,6 @@ def page_inventory():
     low_stock_count = sum(1 for item in inventory if item["stock"] < 20)
 
     col1, col2, col3 = st.columns(3)
-
     col1.metric("Total Products", len(inventory))
     col2.metric("Units in Stock", total_stock)
     col3.metric("Low Stock Items", low_stock_count)
@@ -193,7 +188,6 @@ def page_inventory():
             if col_f.button("Save", key=f"save_{item['id']}"):
                 item["price"] = round(new_price, 2)
                 item["stock"] = int(new_stock)
-
                 save_inventory(inventory)
 
                 st.success(f"{item['name']} updated successfully.")
@@ -263,7 +257,6 @@ def page_orders():
                 )
 
                 total = quantity * product["price"]
-
                 st.success(f"Item Total: ${total:.2f}")
 
                 if st.button("Add to Cart", key=f"add_{category}"):
@@ -325,7 +318,6 @@ def page_cart():
     with col_place:
         if st.button("Place Order"):
             inventory = load_inventory()
-
             enough_stock = True
 
             for cart_item in st.session_state.cart:
@@ -342,7 +334,6 @@ def page_cart():
                             inventory_item["stock"] -= cart_item["quantity"]
 
                 save_inventory(inventory)
-
                 st.session_state.cart = []
 
                 st.success("Order placed successfully! Inventory updated.")
@@ -352,6 +343,62 @@ def page_cart():
         if st.button("Clear Cart"):
             st.session_state.cart = []
             st.rerun()
+
+
+def page_profile(user):
+    st.header("👤 User Profile")
+
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Account Information")
+        st.write(f"**Username:** {user['username']}")
+        st.write(f"**Role:** {user['role']}")
+
+        if user["role"] == "admin":
+            st.success("Access Level: Full Inventory Management")
+        else:
+            st.info("Access Level: Grocery Ordering")
+
+    with col2:
+        st.subheader("Shopping Statistics")
+
+        cart_items = len(st.session_state.cart)
+        cart_total = sum(item["total"] for item in st.session_state.cart)
+
+        st.metric("Items Currently in Cart", cart_items)
+        st.metric("Current Cart Total", f"${cart_total:.2f}")
+
+    st.markdown("---")
+
+    st.subheader("System Information")
+    st.write("**Application:** MISY350 Groceries")
+    st.write("**Version:** 1.0 MVP")
+    st.write("**Platform:** Streamlit")
+    st.write("**Database Type:** JSON File Storage")
+
+    st.markdown("---")
+
+    st.subheader("Account Actions")
+
+    if user["role"] == "user":
+        if st.button("Clear Shopping Cart"):
+            st.session_state.cart = []
+            st.success("Shopping cart cleared.")
+            st.rerun()
+    else:
+        st.write("Admins can manage inventory from the dashboard.")
+
+
+def logout_button():
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.user = None
+        st.session_state.cart = []
+        st.success("Logged out successfully.")
+        st.rerun()
 
 
 add_style()
@@ -388,20 +435,13 @@ if not st.session_state.logged_in:
         new_user = st.text_input("Create Username")
         new_pass = st.text_input("Create Password", type="password")
 
-        role = st.selectbox(
-            "Select Role",
-            ["user", "admin"]
-        )
+        role = st.selectbox("Select Role", ["user", "admin"])
 
         if st.button("Register"):
             if new_user.strip() == "" or new_pass.strip() == "":
                 st.error("Please enter both username and password.")
             else:
-                success, message = register(
-                    new_user,
-                    new_pass,
-                    role
-                )
+                success, message = register(new_user, new_pass, role)
 
                 if success:
                     st.success(message)
@@ -413,37 +453,37 @@ else:
 
     welcome_header(user)
 
-    st.sidebar.title(f"Welcome, {user['username']}")
-
     if user["role"] == "admin":
-        page = st.sidebar.radio(
-            "Navigation",
+        dashboard_tab, profile_tab, logout_tab = st.tabs(
             ["Dashboard", "Profile", "Logout"]
         )
+
+        with dashboard_tab:
+            page_inventory()
+
+        with profile_tab:
+            page_profile(user)
+
+        with logout_tab:
+            st.header("Logout")
+            st.write("Click below to log out of MISY350 Groceries.")
+            logout_button()
+
     else:
-        page = st.sidebar.radio(
-            "Navigation",
+        dashboard_tab, cart_tab, profile_tab, logout_tab = st.tabs(
             ["Dashboard", "Cart", "Profile", "Logout"]
         )
 
-    if page == "Dashboard":
-        if user["role"] == "admin":
-            page_inventory()
-        elif user["role"] == "user":
+        with dashboard_tab:
             page_orders()
 
-    elif page == "Cart":
-        page_cart()
+        with cart_tab:
+            page_cart()
 
-    elif page == "Profile":
-        st.header("Profile")
-        st.write(f"Username: {user['username']}")
-        st.write(f"Role: {user['role']}")
+        with profile_tab:
+            page_profile(user)
 
-    elif page == "Logout":
-        st.session_state.logged_in = False
-        st.session_state.user = None
-        st.session_state.cart = []
-
-        st.success("Logged out successfully.")
-        st.rerun()
+        with logout_tab:
+            st.header("Logout")
+            st.write("Click below to log out of MISY350 Groceries.")
+            logout_button()
