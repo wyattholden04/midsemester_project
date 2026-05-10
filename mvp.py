@@ -204,60 +204,74 @@ def page_orders():
     inventory = load_inventory()
 
     st.header("Place Grocery Order")
-    st.write("Choose a grocery category, then select an available item.")
+    st.write("Choose a grocery category tab, then select an available item.")
 
-    categories = sorted(set(item.get("category", "Other") for item in inventory if item["stock"] > 0))
+    categories = sorted(
+        set(item.get("category", "Other") for item in inventory if item["stock"] > 0)
+    )
 
-    selected_category = st.selectbox("Select Category", categories)
-
-    available_products = [
-        item["name"] for item in inventory
-        if item["stock"] > 0 and item.get("category", "Other") == selected_category
-    ]
-
-    if not available_products:
-        st.warning("No products available in this category.")
+    if not categories:
+        st.warning("No products currently in stock.")
         return
 
-    customer = st.text_input("Customer Name")
+    tabs = st.tabs(categories)
 
-    selected_product = st.selectbox("Select Product", available_products)
+    for tab, category in zip(tabs, categories):
+        with tab:
+            st.subheader(category)
 
-    product = None
+            category_items = [
+                item for item in inventory
+                if item["stock"] > 0 and item.get("category", "Other") == category
+            ]
 
-    for item in inventory:
-        if item["name"] == selected_product:
-            product = item
-            break
+            product_names = [item["name"] for item in category_items]
 
-    if product:
-        st.info(
-            f"Category: {product.get('category', 'Other')} | "
-            f"Available Stock: {product['stock']} | "
-            f"Price: ${product['price']:.2f}"
-        )
+            customer = st.text_input(
+                "Customer Name",
+                key=f"customer_{category}"
+            )
 
-        quantity = st.number_input(
-            "Quantity",
-            min_value=1,
-            max_value=int(product["stock"]),
-            step=1
-        )
+            selected_product = st.selectbox(
+                "Select Product",
+                product_names,
+                key=f"product_{category}"
+            )
 
-        total = quantity * product["price"]
+            product = None
 
-        st.success(f"Total: ${total:.2f}")
+            for item in category_items:
+                if item["name"] == selected_product:
+                    product = item
+                    break
 
-        if st.button("Submit Order"):
-            if customer.strip() == "":
-                st.error("Please enter a customer name.")
-            else:
-                product["stock"] -= int(quantity)
+            if product:
+                st.info(
+                    f"Available Stock: {product['stock']} | "
+                    f"Price: ${product['price']:.2f}"
+                )
 
-                save_inventory(inventory)
+                quantity = st.number_input(
+                    "Quantity",
+                    min_value=1,
+                    max_value=int(product["stock"]),
+                    step=1,
+                    key=f"quantity_{category}"
+                )
 
-                st.success("Order placed successfully! Inventory updated.")
-                st.rerun()
+                total = quantity * product["price"]
+
+                st.success(f"Total: ${total:.2f}")
+
+                if st.button("Submit Order", key=f"submit_{category}"):
+                    if customer.strip() == "":
+                        st.error("Please enter a customer name.")
+                    else:
+                        product["stock"] -= int(quantity)
+                        save_inventory(inventory)
+
+                        st.success("Order placed successfully! Inventory updated.")
+                        st.rerun()
 
 
 add_style()
