@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 import json
 from pathlib import Path
 
@@ -31,13 +30,7 @@ def save_users(users):
 
 
 def load_inventory():
-    try:
-        data = json.loads(INVENTORY_FILE.read_text())
-        if isinstance(data, list):
-            return data
-        return []
-    except Exception:
-        return []
+    return json.loads(INVENTORY_FILE.read_text())
 
 
 def save_inventory(data):
@@ -86,13 +79,12 @@ def add_style():
             font-weight: 800;
             color: #2E8B57;
             text-align: center;
-            margin-top: 10px;
             margin-bottom: 5px;
         }
 
         .sub-title {
             font-size: 20px;
-            color: #555555;
+            color: #555;
             text-align: center;
             margin-bottom: 30px;
         }
@@ -108,20 +100,6 @@ def add_style():
 
         .welcome-box h3 {
             color: #1b5e20;
-            margin-bottom: 8px;
-        }
-
-        .welcome-box p {
-            color: #444444;
-            font-size: 17px;
-        }
-
-        .section-card {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0px 3px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -135,7 +113,7 @@ def welcome_header(user):
 
     st.markdown(f"""
         <div class="welcome-box">
-            <h3>Hello, {user['username']}!</h3>
+            <h3>Welcome, {user['username']}!</h3>
             <p>You are logged in as <strong>{user['role']}</strong>.</p>
         </div>
     """, unsafe_allow_html=True)
@@ -144,146 +122,112 @@ def welcome_header(user):
 def page_inventory():
     inventory = load_inventory()
 
-    st.header("Inventory Manager")
-    st.write("View and adjust grocery inventory below.")
+    st.header("Admin Inventory Manager")
+    st.write("Admins can view and update grocery inventory.")
 
     search_query = st.text_input(
         "Search by item name",
-        placeholder="e.g. Milk",
-        key="search"
+        placeholder="e.g. Milk"
     )
 
     filtered = [
-        i for i in inventory
-        if search_query.lower() in i["name"].lower()
+        item for item in inventory
+        if search_query.lower() in item["name"].lower()
     ]
 
-    total_stock = sum(i.get("stock", 0) for i in inventory)
-    low_stock_count = sum(1 for i in inventory if i.get("stock", 0) < 20)
+    total_stock = sum(item["stock"] for item in inventory)
+    low_stock_count = sum(1 for item in inventory if item["stock"] < 20)
 
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Total Items", len(inventory))
-    m2.metric("Units in Stock", total_stock)
-    m3.metric("Low Stock Items", low_stock_count)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Items", len(inventory))
+    col2.metric("Units in Stock", total_stock)
+    col3.metric("Low Stock Items", low_stock_count)
 
     st.markdown("---")
 
-    if not filtered:
-        st.warning("No items match your search.")
-    else:
-        for item in filtered:
-            col_a, col_b, col_c, col_d, col_e = st.columns([3, 2, 2, 2, 1])
+    for item in filtered:
+        col_a, col_b, col_c, col_d, col_e = st.columns([3, 2, 2, 2, 1])
 
-            col_a.write(f"**{item['name']}**")
-            col_b.write(f"ID: `{item['id']}`")
+        col_a.write(f"**{item['name']}**")
+        col_b.write(f"ID: `{item['id']}`")
 
-            new_price = col_c.number_input(
-                "Price ($)",
-                min_value=0.0,
-                max_value=9999.0,
-                value=float(item.get("price", 0.0)),
-                step=0.01,
-                format="%.2f",
-                key=f"price_{item['id']}"
-            )
+        new_price = col_c.number_input(
+            "Price ($)",
+            min_value=0.0,
+            value=float(item["price"]),
+            step=0.01,
+            format="%.2f",
+            key=f"price_{item['id']}"
+        )
 
-            new_stock = col_d.number_input(
-                "Stock",
-                min_value=0,
-                max_value=9999,
-                value=int(item.get("stock", 0)),
-                step=1,
-                key=f"stock_{item['id']}"
-            )
+        new_stock = col_d.number_input(
+            "Stock",
+            min_value=0,
+            value=int(item["stock"]),
+            step=1,
+            key=f"stock_{item['id']}"
+        )
 
-            if item.get("stock", 0) < 20:
-                col_d.caption("⚠️ Low stock")
+        if item["stock"] < 20:
+            col_d.caption("⚠️ Low stock")
 
-            if col_e.button("Save", key=f"save_{item['id']}"):
-                item["price"] = round(new_price, 2)
-                item["stock"] = int(new_stock)
-                save_inventory(inventory)
-                st.success(f"✅ '{item['name']}' updated.")
-                st.rerun()
+        if col_e.button("Save", key=f"save_{item['id']}"):
+            item["price"] = round(new_price, 2)
+            item["stock"] = int(new_stock)
+            save_inventory(inventory)
+            st.success(f"{item['name']} updated.")
+            st.rerun()
 
-            st.divider()
+        st.divider()
 
 
 def page_orders():
     inventory = load_inventory()
 
-    if "orders" not in st.session_state:
-        st.session_state.orders = [
-            {"order_id": 1, "customer": "Matt", "item": "Eggs (1 Dozen)", "quantity": 2, "total": 4.50, "status": "Placed"},
-            {"order_id": 2, "customer": "Sarah", "item": "Milk (1 Gallon)", "quantity": 1, "total": 2.99, "status": "Completed"},
-            {"order_id": 3, "customer": "Jake", "item": "Ground Beef (1 lb)", "quantity": 3, "total": 22.47, "status": "Placed"}
-        ]
+    st.header("Place Grocery Order")
+    st.write("Users can only place orders from available inventory.")
 
-    if "next_order_id" not in st.session_state:
-        st.session_state.next_order_id = 4
+    customer = st.text_input("Customer Name")
 
-    def get_product(product_name):
-        for product in inventory:
-            if product["name"] == product_name:
-                return product
-        return None
+    product_names = [
+        item["name"] for item in inventory
+        if item["stock"] > 0
+    ]
 
-    st.header("Orders")
-    st.write("Place and view grocery orders below.")
+    if not product_names:
+        st.warning("No items are currently in stock.")
+        return
 
-    tab1, tab2 = st.tabs(["Order List", "Place Order"])
+    selected_product = st.selectbox("Select Product", product_names)
 
-    with tab1:
-        df_orders = pd.DataFrame(st.session_state.orders)
+    product = None
+    for item in inventory:
+        if item["name"] == selected_product:
+            product = item
+            break
 
-        status_filter = st.selectbox(
-            "Filter by Status",
-            ["All", "Placed", "Completed", "Cancelled"]
+    if product:
+        st.info(f"Available Stock: {product['stock']} | Price: ${product['price']:.2f}")
+
+        quantity = st.number_input(
+            "Quantity",
+            min_value=1,
+            max_value=int(product["stock"]),
+            step=1
         )
 
-        if status_filter != "All":
-            df_orders = df_orders[df_orders["status"] == status_filter]
+        total = quantity * product["price"]
+        st.success(f"Total: ${total:.2f}")
 
-        st.dataframe(df_orders, use_container_width=True)
+        if st.button("Submit Order"):
+            if customer.strip() == "":
+                st.error("Please enter a customer name.")
+            else:
+                product["stock"] -= int(quantity)
+                save_inventory(inventory)
 
-    with tab2:
-        customer = st.text_input("Customer Name")
-
-        product_names = [product["name"] for product in inventory]
-
-        selected_product = st.selectbox("Select Product", product_names)
-
-        product = get_product(selected_product)
-
-        if product:
-            st.info(f"Available Stock: {product['stock']} | Price: ${product['price']:.2f}")
-
-            quantity = st.number_input(
-                "Quantity",
-                min_value=1,
-                max_value=int(product["stock"]),
-                step=1
-            )
-
-            total = quantity * product["price"]
-            st.success(f"Total: ${total:.2f}")
-
-            if st.button("Submit Order"):
-                if customer.strip() == "":
-                    st.error("Please enter a customer name.")
-                else:
-                    st.session_state.orders.append({
-                        "order_id": st.session_state.next_order_id,
-                        "customer": customer,
-                        "item": selected_product,
-                        "quantity": int(quantity),
-                        "total": round(total, 2),
-                        "status": "Placed"
-                    })
-
-                    st.session_state.next_order_id += 1
-                    st.success("Order placed successfully!")
-                    st.rerun()
+                st.success("Order placed successfully! Inventory has been updated.")
+                st.rerun()
 
 
 add_style()
@@ -291,7 +235,7 @@ add_style()
 if not st.session_state.logged_in:
     st.markdown("""
         <div class="main-title">🛒 MISY350 Groceries</div>
-        <div class="sub-title">Login or register to manage groceries and orders.</div>
+        <div class="sub-title">Login or register to continue.</div>
     """, unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["Login", "Register"])
@@ -321,12 +265,15 @@ if not st.session_state.logged_in:
         role = st.selectbox("Select Role", ["user", "admin"])
 
         if st.button("Register"):
-            success, message = register(new_user, new_pass, role)
-
-            if success:
-                st.success(message)
+            if new_user.strip() == "" or new_pass.strip() == "":
+                st.error("Please enter both username and password.")
             else:
-                st.error(message)
+                success, message = register(new_user, new_pass, role)
+
+                if success:
+                    st.success(message)
+                else:
+                    st.error(message)
 
 else:
     user = st.session_state.user
@@ -337,7 +284,7 @@ else:
 
     page = st.sidebar.radio(
         "Navigation",
-        ["Dashboard", "Profile", "Settings", "Logout"]
+        ["Dashboard", "Profile", "Logout"]
     )
 
     if page == "Dashboard":
@@ -350,10 +297,6 @@ else:
         st.header("Profile")
         st.write(f"Username: {user['username']}")
         st.write(f"Role: {user['role']}")
-
-    elif page == "Settings":
-        st.header("Settings")
-        st.write("Settings page")
 
     elif page == "Logout":
         st.session_state.logged_in = False
