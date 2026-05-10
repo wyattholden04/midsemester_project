@@ -1,14 +1,98 @@
 [
-  {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22, "category": "Dairy & Eggs"},
-  {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21, "category": "Dairy & Eggs"},
-  {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20, "category": "Meat"},
-  {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18, "category": "Meat"},
-  {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19, "category": "Drinks"},
-  {"id": 6, "name": "Apples (3 lb Bag)", "price": 4.99, "stock": 25, "category": "Produce"},
-  {"id": 7, "name": "Bananas (1 Bunch)", "price": 1.99, "stock": 30, "category": "Produce"},
-  {"id": 8, "name": "Bread (White Loaf)", "price": 3.49, "stock": 16, "category": "Bakery"},
-  {"id": 9, "name": "Cheddar Cheese (8 oz)", "price": 3.99, "stock": 14, "category": "Dairy & Eggs"},
-  {"id": 10, "name": "Bottled Water (24 Pack)", "price": 5.99, "stock": 12, "category": "Drinks"},
-  {"id": 11, "name": "Greek Yogurt (32 oz)", "price": 4.79, "stock": 17, "category": "Dairy & Eggs"},
-  {"id": 12, "name": "Cereal (Family Size)", "price": 4.99, "stock": 15, "category": "Pantry"}
+  {
+    "id": 1,
+    "name": "Eggs (1 Dozen)",
+    "price": 2.25,
+    "stock": 22,
+    "category": "Dairy & Eggs",
+    "image": "eggs.webp"
+  },
+  {
+    "id": 2,
+    "name": "Milk (1 Gallon)",
+    "price": 2.99,
+    "stock": 21,
+    "category": "Dairy & Eggs",
+    "image": "milk.jpeg"
+  },
+  {
+    "id": 3,
+    "name": "Ground Beef (1 lb)",
+    "price": 7.49,
+    "stock": 20,
+    "category": "Meat",
+    "image": "beef.jpeg"
+  },
+  {
+    "id": 4,
+    "name": "Chicken Breast (5 Pack)",
+    "price": 12.99,
+    "stock": 18,
+    "category": "Meat",
+    "image": "chicken.png"
+  },
+  {
+    "id": 5,
+    "name": "Orange Juice (46 fl oz)",
+    "price": 6.49,
+    "stock": 19,
+    "category": "Drinks",
+    "image": "orangejuice.jpeg"
+  },
+  {
+    "id": 6,
+    "name": "Apples (3 lb Bag)",
+    "price": 4.99,
+    "stock": 25,
+    "category": "Produce",
+    "image": "apple.jpeg"
+  },
+  {
+    "id": 7,
+    "name": "Bananas (1 Bunch)",
+    "price": 1.99,
+    "stock": 30,
+    "category": "Produce",
+    "image": "banana.jpeg"
+  },
+  {
+    "id": 8,
+    "name": "Bread (White Loaf)",
+    "price": 3.49,
+    "stock": 16,
+    "category": "Bakery",
+    "image": "whiteloafbread.webp"
+  },
+  {
+    "id": 9,
+    "name": "Cheddar Cheese (8 oz)",
+    "price": 3.99,
+    "stock": 14,
+    "category": "Dairy & Eggs",
+    "image": "cheddarcheese.jpg"
+  },
+  {
+    "id": 10,
+    "name": "Bottled Water (24 Pack)",
+    "price": 5.99,
+    "stock": 12,
+    "category": "Drinks",
+    "image": "water.jpg"
+  },
+  {
+    "id": 11,
+    "name": "Greek Yogurt (32 oz)",
+    "price": 4.79,
+    "stock": 17,
+    "category": "Dairy & Eggs",
+    "image": "greekyogurt.jpg"
+  },
+  {
+    "id": 12,
+    "name": "Cereal (Family Size)",
+    "price": 4.99,
+    "stock": 15,
+    "category": "Pantry",
+    "image": "CTC.jpg"
+  }
 ]
