@@ -77,7 +77,6 @@ def login(username, password):
 def add_style():
     st.markdown("""
         <style>
-
         .main-title {
             font-size: 50px;
             font-weight: 900;
@@ -113,13 +112,7 @@ def add_style():
             border-radius: 18px;
             border: 2px solid #d9f2dc;
             box-shadow: 0px 4px 14px rgba(0,0,0,0.08);
-            margin-bottom: 22px;
-            transition: 0.2s ease-in-out;
-        }
-
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0px 8px 20px rgba(0,0,0,0.12);
+            margin-bottom: 16px;
         }
 
         .product-name {
@@ -144,7 +137,6 @@ def add_style():
             border-top: 1px solid #eeeeee;
             font-size: 14px;
         }
-
         </style>
     """, unsafe_allow_html=True)
 
@@ -172,42 +164,25 @@ def footer():
 
 
 def page_inventory():
-
     inventory = load_inventory()
 
     st.header("📦 Admin Inventory Manager")
 
-    categories = ["All"] + sorted(
-        set(item.get("category", "Other") for item in inventory)
-    )
+    categories = ["All"] + sorted(set(item.get("category", "Other") for item in inventory))
+    selected_category = st.selectbox("Filter by Category", categories)
 
-    selected_category = st.selectbox(
-        "Filter by Category",
-        categories
-    )
-
-    search_query = st.text_input(
-        "Search Inventory",
-        placeholder="Search items..."
-    )
+    search_query = st.text_input("Search Inventory", placeholder="Search items...")
 
     filtered = [
         item for item in inventory
         if search_query.lower() in item["name"].lower()
-        and (
-            selected_category == "All"
-            or item.get("category", "Other") == selected_category
-        )
+        and (selected_category == "All" or item.get("category", "Other") == selected_category)
     ]
 
     total_stock = sum(item["stock"] for item in inventory)
-
-    low_stock_count = sum(
-        1 for item in inventory if item["stock"] < 20
-    )
+    low_stock_count = sum(1 for item in inventory if item["stock"] < 20)
 
     col1, col2, col3 = st.columns(3)
-
     col1.metric("Total Products", len(inventory))
     col2.metric("Units in Stock", total_stock)
     col3.metric("Low Stock Items", low_stock_count)
@@ -216,21 +191,13 @@ def page_inventory():
 
     if not filtered:
         st.warning("No items found.")
-
     else:
         for item in filtered:
-
-            icon = CATEGORY_ICONS.get(
-                item.get("category", "Other"),
-                "🛒"
-            )
+            icon = CATEGORY_ICONS.get(item.get("category", "Other"), "🛒")
 
             st.markdown(f"""
                 <div class="product-card">
-                    <div class="product-name">
-                        {icon} {item['name']}
-                    </div>
-
+                    <div class="product-name">{icon} {item['name']}</div>
                     <div class="product-divider"></div>
                 </div>
             """, unsafe_allow_html=True)
@@ -264,10 +231,8 @@ def page_inventory():
                 st.warning("⚠️ Low stock item")
 
             if col3.button("Save", key=f"save_{item['id']}"):
-
                 item["price"] = round(new_price, 2)
                 item["stock"] = int(new_stock)
-
                 save_inventory(inventory)
 
                 st.success(f"{item['name']} updated successfully.")
@@ -277,31 +242,16 @@ def page_inventory():
 
 
 def add_to_cart(product, quantity):
-
     for cart_item in st.session_state.cart:
-
         if cart_item["id"] == product["id"]:
-
-            new_quantity = (
-                cart_item["quantity"] + int(quantity)
-            )
+            new_quantity = cart_item["quantity"] + int(quantity)
 
             if new_quantity > product["stock"]:
-                st.error(
-                    "You cannot add more than the available stock."
-                )
-
+                st.error("You cannot add more than the available stock.")
             else:
                 cart_item["quantity"] = new_quantity
-
-                cart_item["total"] = round(
-                    cart_item["quantity"] * cart_item["price"],
-                    2
-                )
-
-                st.success(
-                    f"{product['name']} quantity updated in cart."
-                )
+                cart_item["total"] = round(cart_item["quantity"] * cart_item["price"], 2)
+                st.success(f"{product['name']} quantity updated in cart.")
 
             return
 
@@ -318,21 +268,15 @@ def add_to_cart(product, quantity):
 
 
 def page_orders():
-
     inventory = load_inventory()
 
     st.header("🛍️ Shop Groceries")
 
     customer = st.session_state.user["username"]
-
     st.write(f"Ordering as: **{customer}**")
 
     categories = sorted(
-        set(
-            item.get("category", "Other")
-            for item in inventory
-            if item["stock"] > 0
-        )
+        set(item.get("category", "Other") for item in inventory if item["stock"] > 0)
     )
 
     if not categories:
@@ -347,31 +291,21 @@ def page_orders():
     tabs = st.tabs(category_labels)
 
     for tab, category in zip(tabs, categories):
-
         with tab:
-
-            st.subheader(
-                f"{CATEGORY_ICONS.get(category, '🛒')} {category}"
-            )
+            st.subheader(f"{CATEGORY_ICONS.get(category, '🛒')} {category}")
 
             category_items = [
                 item for item in inventory
-                if item["stock"] > 0
-                and item.get("category", "Other") == category
+                if item["stock"] > 0 and item.get("category", "Other") == category
             ]
 
             columns = st.columns(3)
 
             for index, product in enumerate(category_items):
-
                 with columns[index % 3]:
-
                     st.markdown(f"""
                         <div class="product-card">
-                            <div class="product-name">
-                                {product['name']}
-                            </div>
-
+                            <div class="product-name">{product['name']}</div>
                             <div class="product-divider"></div>
                         </div>
                     """, unsafe_allow_html=True)
@@ -381,13 +315,8 @@ def page_orders():
                     if image_path:
                         st.image(image_path, width=220)
 
-                    st.write(
-                        f"**Price:** ${product['price']:.2f}"
-                    )
-
-                    st.write(
-                        f"**Available Stock:** {product['stock']}"
-                    )
+                    st.write(f"**Price:** ${product['price']:.2f}")
+                    st.write(f"**Available Stock:** {product['stock']}")
 
                     if product["stock"] < 20:
                         st.warning("Low stock")
@@ -400,20 +329,13 @@ def page_orders():
                         key=f"quantity_{product['id']}"
                     )
 
-                    st.write(
-                        f"Item Total: **${quantity * product['price']:.2f}**"
-                    )
+                    st.write(f"Item Total: **${quantity * product['price']:.2f}**")
 
-                    if st.button(
-                        "Add to Cart",
-                        key=f"add_{product['id']}"
-                    ):
-
+                    if st.button("Add to Cart", key=f"add_{product['id']}"):
                         add_to_cart(product, quantity)
 
 
 def page_cart():
-
     st.header("🛒 Cart & Checkout")
 
     if not st.session_state.cart:
@@ -422,201 +344,116 @@ def page_cart():
 
     st.subheader("Order Summary")
 
-    cart_total = sum(
-        item["total"] for item in st.session_state.cart
-    )
-
-    total_items = sum(
-        item["quantity"] for item in st.session_state.cart
-    )
+    cart_total = sum(item["total"] for item in st.session_state.cart)
+    total_items = sum(item["quantity"] for item in st.session_state.cart)
 
     col_a, col_b = st.columns(2)
-
     col_a.metric("Total Items", total_items)
     col_b.metric("Estimated Total", f"${cart_total:.2f}")
 
     st.markdown("---")
 
     for index, item in enumerate(st.session_state.cart):
-
-        col1, col2, col3, col4, col5 = st.columns(
-            [3, 2, 2, 2, 1]
-        )
+        col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
 
         col1.write(f"**{item['name']}**")
-
-        col2.write(
-            f"{CATEGORY_ICONS.get(item['category'], '🛒')} "
-            f"{item['category']}"
-        )
-
+        col2.write(f"{CATEGORY_ICONS.get(item['category'], '🛒')} {item['category']}")
         col3.write(f"Qty: {item['quantity']}")
         col4.write(f"${item['total']:.2f}")
 
         if col5.button("Remove", key=f"remove_{index}"):
-
             st.session_state.cart.pop(index)
             st.rerun()
 
     st.markdown("---")
 
     st.subheader("Checkout")
-
     st.write(f"Subtotal: **${cart_total:.2f}**")
     st.write(f"Estimated Total: **${cart_total:.2f}**")
 
     col_place, col_clear = st.columns(2)
 
     with col_place:
-
         if st.button("Place Order"):
-
             inventory = load_inventory()
-
             enough_stock = True
 
             for cart_item in st.session_state.cart:
-
                 for inventory_item in inventory:
-
                     if inventory_item["id"] == cart_item["id"]:
-
-                        if (
-                            cart_item["quantity"]
-                            > inventory_item["stock"]
-                        ):
-
+                        if cart_item["quantity"] > inventory_item["stock"]:
                             enough_stock = False
-
-                            st.error(
-                                f"Not enough stock for "
-                                f"{cart_item['name']}."
-                            )
+                            st.error(f"Not enough stock for {cart_item['name']}.")
 
             if enough_stock:
-
                 for cart_item in st.session_state.cart:
-
                     for inventory_item in inventory:
-
                         if inventory_item["id"] == cart_item["id"]:
-
-                            inventory_item["stock"] -= (
-                                cart_item["quantity"]
-                            )
+                            inventory_item["stock"] -= cart_item["quantity"]
 
                 save_inventory(inventory)
-
                 st.session_state.cart = []
 
-                st.success(
-                    "Order placed successfully! "
-                    "Inventory updated."
-                )
-
+                st.success("Order placed successfully! Inventory updated.")
                 st.rerun()
 
     with col_clear:
-
         if st.button("Clear Cart"):
-
             st.session_state.cart = []
             st.rerun()
 
 
 def page_profile(user):
-
     st.header("👤 User Profile")
 
     col1, col2 = st.columns(2)
 
     with col1:
-
         st.subheader("Account Information")
-
         st.write(f"**Username:** {user['username']}")
         st.write(f"**Role:** {user['role']}")
 
         if user["role"] == "admin":
-
-            st.success(
-                "Access Level: Full Inventory Management"
-            )
-
+            st.success("Access Level: Full Inventory Management")
         else:
-            st.info(
-                "Access Level: Grocery Ordering"
-            )
+            st.info("Access Level: Grocery Ordering")
 
     with col2:
-
         st.subheader("Activity")
-
         cart_items = len(st.session_state.cart)
-
-        cart_total = sum(
-            item["total"] for item in st.session_state.cart
-        )
+        cart_total = sum(item["total"] for item in st.session_state.cart)
 
         st.metric("Items in Cart", cart_items)
-
-        st.metric(
-            "Current Cart Total",
-            f"${cart_total:.2f}"
-        )
+        st.metric("Current Cart Total", f"${cart_total:.2f}")
 
     st.markdown("---")
 
     st.subheader("Change Username")
 
-    new_username = st.text_input(
-        "Enter New Username"
-    )
+    new_username = st.text_input("Enter New Username")
 
     if st.button("Update Username"):
-
         users = load_users()
-
-        username_taken = any(
-            existing_user["username"] == new_username
-            for existing_user in users
-        )
+        username_taken = any(existing_user["username"] == new_username for existing_user in users)
 
         if new_username.strip() == "":
-
             st.error("Username cannot be empty.")
-
         elif username_taken:
-
             st.error("Username already exists.")
-
         else:
-
             for existing_user in users:
-
-                if (
-                    existing_user["username"]
-                    == user["username"]
-                ):
-
+                if existing_user["username"] == user["username"]:
                     existing_user["username"] = new_username
 
             save_users(users)
+            st.session_state.user["username"] = new_username
 
-            st.session_state.user["username"] = (
-                new_username
-            )
-
-            st.success(
-                "Username updated successfully."
-            )
-
+            st.success("Username updated successfully.")
             st.rerun()
 
     st.markdown("---")
 
     st.subheader("System Information")
-
     st.write("**Application:** MISY350 Groceries")
     st.write("**Version:** 1.0 MVP")
     st.write("**System Status:** Active")
@@ -624,29 +461,19 @@ def page_profile(user):
     st.markdown("---")
 
     if user["role"] == "user":
-
         if st.button("Clear Shopping Cart"):
-
             st.session_state.cart = []
-
             st.success("Shopping cart cleared.")
             st.rerun()
-
     else:
-        st.write(
-            "Admins can manage inventory "
-            "from the Inventory tab."
-        )
+        st.write("Admins can manage inventory from the Inventory tab.")
 
 
 def logout_button():
-
     if st.button("Logout"):
-
         st.session_state.logged_in = False
         st.session_state.user = None
         st.session_state.cart = []
-
         st.success("Logged out successfully.")
         st.rerun()
 
@@ -654,114 +481,60 @@ def logout_button():
 add_style()
 
 if not st.session_state.logged_in:
-
     st.markdown("""
-        <div class="main-title">
-            🛒 MISY350 Groceries
-        </div>
-
-        <div class="sub-title">
-            Your campus grocery management system
-        </div>
+        <div class="main-title">🛒 MISY350 Groceries</div>
+        <div class="sub-title">Your campus grocery management system</div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs([
-        "🔐 Login",
-        "📝 Register"
-    ])
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
 
     with tab1:
-
         st.subheader("Welcome Back")
 
         username = st.text_input("Username")
-
-        password = st.text_input(
-            "Password",
-            type="password"
-        )
+        password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-
-            success, user = login(
-                username,
-                password
-            )
+            success, user = login(username, password)
 
             if success:
-
                 st.session_state.logged_in = True
                 st.session_state.user = user
 
-                st.success(
-                    "Logged in successfully."
-                )
-
+                st.success("Logged in successfully.")
                 st.rerun()
-
             else:
                 st.error("Invalid credentials.")
 
     with tab2:
-
         st.subheader("Create an Account")
 
-        new_user = st.text_input(
-            "Create Username"
-        )
+        new_user = st.text_input("Create Username")
+        new_pass = st.text_input("Create Password", type="password")
 
-        new_pass = st.text_input(
-            "Create Password",
-            type="password"
-        )
-
-        role = st.selectbox(
-            "Select Role",
-            ["user", "admin"]
-        )
+        role = st.selectbox("Select Role", ["user", "admin"])
 
         if st.button("Register"):
-
-            if (
-                new_user.strip() == ""
-                or new_pass.strip() == ""
-            ):
-
-                st.error(
-                    "Please enter both username "
-                    "and password."
-                )
-
+            if new_user.strip() == "" or new_pass.strip() == "":
+                st.error("Please enter both username and password.")
             else:
-
-                success, message = register(
-                    new_user,
-                    new_pass,
-                    role
-                )
+                success, message = register(new_user, new_pass, role)
 
                 if success:
                     st.success(message)
-
                 else:
                     st.error(message)
 
     footer()
 
 else:
-
     user = st.session_state.user
 
     welcome_header(user)
 
     if user["role"] == "admin":
-
         inventory_tab, profile_tab, logout_tab = st.tabs(
-            [
-                "📦 Inventory",
-                "👤 Profile",
-                "🚪 Logout"
-            ]
+            ["📦 Inventory", "👤 Profile", "🚪 Logout"]
         )
 
         with inventory_tab:
@@ -771,25 +544,13 @@ else:
             page_profile(user)
 
         with logout_tab:
-
             st.header("🚪 Logout")
-
-            st.write(
-                "Click below to log out of "
-                "MISY350 Groceries."
-            )
-
+            st.write("Click below to log out of MISY350 Groceries.")
             logout_button()
 
     else:
-
         shop_tab, cart_tab, profile_tab, logout_tab = st.tabs(
-            [
-                "🛍️ Shop",
-                "🛒 Cart",
-                "👤 Profile",
-                "🚪 Logout"
-            ]
+            ["🛍️ Shop", "🛒 Cart", "👤 Profile", "🚪 Logout"]
         )
 
         with shop_tab:
@@ -802,14 +563,8 @@ else:
             page_profile(user)
 
         with logout_tab:
-
             st.header("🚪 Logout")
-
-            st.write(
-                "Click below to log out of "
-                "MISY350 Groceries."
-            )
-
+            st.write("Click below to log out of MISY350 Groceries.")
             logout_button()
 
     footer()
