@@ -89,10 +89,18 @@
   },
   {
     "id": 12,
-    "name": "Cereal (Family Size)",
-    "price": 4.99,
+    "name": "Cinnamon Toast Crunch",
+    "price": 5.49,
     "stock": 15,
     "category": "Pantry",
     "image": "CTC.jpg"
+  },
+  {
+    "id": 13,
+    "name": "Fruity Pebbles",
+    "price": 5.29,
+    "stock": 14,
+    "category": "Pantry",
+    "image": "FP.webp"
   }
 ]
