@@ -9,19 +9,19 @@ INVENTORY_FILE = Path("inventory.project.json")
 
 if not INVENTORY_FILE.exists():
     default_inventory = [
-    {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22},
-    {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21},
-    {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20},
-    {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18},
-    {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19},
-    {"id": 6, "name": "Apples (3 lb Bag)", "price": 4.99, "stock": 25},
-    {"id": 7, "name": "Bananas (1 Bunch)", "price": 1.99, "stock": 30},
-    {"id": 8, "name": "Bread (White Loaf)", "price": 3.49, "stock": 16},
-    {"id": 9, "name": "Cheddar Cheese (8 oz)", "price": 3.99, "stock": 14},
-    {"id": 10, "name": "Bottled Water (24 Pack)", "price": 5.99, "stock": 12},
-    {"id": 11, "name": "Greek Yogurt (32 oz)", "price": 4.79, "stock": 17},
-    {"id": 12, "name": "Cereal (Family Size)", "price": 4.99, "stock": 15},
-]
+        {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22, "category": "Dairy & Eggs"},
+        {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21, "category": "Dairy & Eggs"},
+        {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20, "category": "Meat"},
+        {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18, "category": "Meat"},
+        {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19, "category": "Drinks"},
+        {"id": 6, "name": "Apples (3 lb Bag)", "price": 4.99, "stock": 25, "category": "Produce"},
+        {"id": 7, "name": "Bananas (1 Bunch)", "price": 1.99, "stock": 30, "category": "Produce"},
+        {"id": 8, "name": "Bread (White Loaf)", "price": 3.49, "stock": 16, "category": "Bakery"},
+        {"id": 9, "name": "Cheddar Cheese (8 oz)", "price": 3.99, "stock": 14, "category": "Dairy & Eggs"},
+        {"id": 10, "name": "Bottled Water (24 Pack)", "price": 5.99, "stock": 12, "category": "Drinks"},
+        {"id": 11, "name": "Greek Yogurt (32 oz)", "price": 4.79, "stock": 17, "category": "Dairy & Eggs"},
+        {"id": 12, "name": "Cereal (Family Size)", "price": 4.99, "stock": 15, "category": "Pantry"},
+    ]
     INVENTORY_FILE.write_text(json.dumps(default_inventory, indent=4))
 
 if not USER_FILE.exists():
@@ -130,91 +130,112 @@ def page_inventory():
     inventory = load_inventory()
 
     st.header("Admin Inventory Manager")
-    st.write("Admins can view and update grocery inventory.")
+    st.write("Admins can manage grocery inventory by category.")
+
+    categories = ["All"] + sorted(set(item.get("category", "Other") for item in inventory))
+
+    selected_category = st.selectbox("Filter by Category", categories)
 
     search_query = st.text_input(
-        "Search by item name",
-        placeholder="e.g. Milk"
+        "Search Inventory",
+        placeholder="Search items..."
     )
 
     filtered = [
         item for item in inventory
         if search_query.lower() in item["name"].lower()
+        and (selected_category == "All" or item.get("category", "Other") == selected_category)
     ]
 
     total_stock = sum(item["stock"] for item in inventory)
     low_stock_count = sum(1 for item in inventory if item["stock"] < 20)
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Items", len(inventory))
+
+    col1.metric("Total Products", len(inventory))
     col2.metric("Units in Stock", total_stock)
     col3.metric("Low Stock Items", low_stock_count)
 
     st.markdown("---")
 
-    for item in filtered:
-        col_a, col_b, col_c, col_d, col_e = st.columns([3, 2, 2, 2, 1])
+    if not filtered:
+        st.warning("No items match your search/category.")
+    else:
+        for item in filtered:
+            col_a, col_b, col_c, col_d, col_e, col_f = st.columns([3, 2, 2, 2, 2, 1])
 
-        col_a.write(f"**{item['name']}**")
-        col_b.write(f"ID: `{item['id']}`")
+            col_a.write(f"**{item['name']}**")
+            col_b.write(f"ID: `{item['id']}`")
+            col_c.write(f"Category: **{item.get('category', 'Other')}**")
 
-        new_price = col_c.number_input(
-            "Price ($)",
-            min_value=0.0,
-            value=float(item["price"]),
-            step=0.01,
-            format="%.2f",
-            key=f"price_{item['id']}"
-        )
+            new_price = col_d.number_input(
+                "Price ($)",
+                min_value=0.0,
+                value=float(item["price"]),
+                step=0.01,
+                format="%.2f",
+                key=f"price_{item['id']}"
+            )
 
-        new_stock = col_d.number_input(
-            "Stock",
-            min_value=0,
-            value=int(item["stock"]),
-            step=1,
-            key=f"stock_{item['id']}"
-        )
+            new_stock = col_e.number_input(
+                "Stock",
+                min_value=0,
+                value=int(item["stock"]),
+                step=1,
+                key=f"stock_{item['id']}"
+            )
 
-        if item["stock"] < 20:
-            col_d.caption("⚠️ Low stock")
+            if item["stock"] < 20:
+                col_e.caption("⚠️ Low stock")
 
-        if col_e.button("Save", key=f"save_{item['id']}"):
-            item["price"] = round(new_price, 2)
-            item["stock"] = int(new_stock)
-            save_inventory(inventory)
-            st.success(f"{item['name']} updated.")
-            st.rerun()
+            if col_f.button("Save", key=f"save_{item['id']}"):
+                item["price"] = round(new_price, 2)
+                item["stock"] = int(new_stock)
 
-        st.divider()
+                save_inventory(inventory)
+
+                st.success(f"{item['name']} updated successfully.")
+                st.rerun()
+
+            st.divider()
 
 
 def page_orders():
     inventory = load_inventory()
 
     st.header("Place Grocery Order")
-    st.write("Users can only place orders from available inventory.")
+    st.write("Choose a grocery category, then select an available item.")
+
+    categories = sorted(set(item.get("category", "Other") for item in inventory if item["stock"] > 0))
+
+    selected_category = st.selectbox("Select Category", categories)
+
+    available_products = [
+        item["name"] for item in inventory
+        if item["stock"] > 0 and item.get("category", "Other") == selected_category
+    ]
+
+    if not available_products:
+        st.warning("No products available in this category.")
+        return
 
     customer = st.text_input("Customer Name")
 
-    product_names = [
-        item["name"] for item in inventory
-        if item["stock"] > 0
-    ]
-
-    if not product_names:
-        st.warning("No items are currently in stock.")
-        return
-
-    selected_product = st.selectbox("Select Product", product_names)
+    selected_product = st.selectbox("Select Product", available_products)
 
     product = None
+
     for item in inventory:
         if item["name"] == selected_product:
             product = item
             break
 
     if product:
-        st.info(f"Available Stock: {product['stock']} | Price: ${product['price']:.2f}")
+        st.info(
+            f"Category: {product.get('category', 'Other')} | "
+            f"Available Stock: {product['stock']} | "
+            f"Price: ${product['price']:.2f}"
+        )
 
         quantity = st.number_input(
             "Quantity",
@@ -224,6 +245,7 @@ def page_orders():
         )
 
         total = quantity * product["price"]
+
         st.success(f"Total: ${total:.2f}")
 
         if st.button("Submit Order"):
@@ -231,9 +253,10 @@ def page_orders():
                 st.error("Please enter a customer name.")
             else:
                 product["stock"] -= int(quantity)
+
                 save_inventory(inventory)
 
-                st.success("Order placed successfully! Inventory has been updated.")
+                st.success("Order placed successfully! Inventory updated.")
                 st.rerun()
 
 
@@ -259,23 +282,32 @@ if not st.session_state.logged_in:
             if success:
                 st.session_state.logged_in = True
                 st.session_state.user = user
-                st.success("Logged in successfully")
+
+                st.success("Logged in successfully.")
                 st.rerun()
             else:
-                st.error("Invalid credentials")
+                st.error("Invalid credentials.")
 
     with tab2:
         st.subheader("Register")
 
         new_user = st.text_input("Create Username")
         new_pass = st.text_input("Create Password", type="password")
-        role = st.selectbox("Select Role", ["user", "admin"])
+
+        role = st.selectbox(
+            "Select Role",
+            ["user", "admin"]
+        )
 
         if st.button("Register"):
             if new_user.strip() == "" or new_pass.strip() == "":
                 st.error("Please enter both username and password.")
             else:
-                success, message = register(new_user, new_pass, role)
+                success, message = register(
+                    new_user,
+                    new_pass,
+                    role
+                )
 
                 if success:
                     st.success(message)
@@ -297,16 +329,19 @@ else:
     if page == "Dashboard":
         if user["role"] == "admin":
             page_inventory()
+
         elif user["role"] == "user":
             page_orders()
 
     elif page == "Profile":
         st.header("Profile")
+
         st.write(f"Username: {user['username']}")
         st.write(f"Role: {user['role']}")
 
     elif page == "Logout":
         st.session_state.logged_in = False
         st.session_state.user = None
-        st.success("Logged out")
+
+        st.success("Logged out successfully.")
         st.rerun()
