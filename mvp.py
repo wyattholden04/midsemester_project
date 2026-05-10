@@ -9,12 +9,19 @@ INVENTORY_FILE = Path("inventory.json")
 
 if not INVENTORY_FILE.exists():
     default_inventory = [
-        {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22},
-        {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21},
-        {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20},
-        {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18},
-        {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19},
-    ]
+    {"id": 1, "name": "Eggs (1 Dozen)", "price": 2.25, "stock": 22},
+    {"id": 2, "name": "Milk (1 Gallon)", "price": 2.99, "stock": 21},
+    {"id": 3, "name": "Ground Beef (1 lb)", "price": 7.49, "stock": 20},
+    {"id": 4, "name": "Chicken Breast (5 Pack)", "price": 12.99, "stock": 18},
+    {"id": 5, "name": "Orange Juice (46 fl oz)", "price": 6.49, "stock": 19},
+    {"id": 6, "name": "Apples (3 lb Bag)", "price": 4.99, "stock": 25},
+    {"id": 7, "name": "Bananas (1 Bunch)", "price": 1.99, "stock": 30},
+    {"id": 8, "name": "Bread (White Loaf)", "price": 3.49, "stock": 16},
+    {"id": 9, "name": "Cheddar Cheese (8 oz)", "price": 3.99, "stock": 14},
+    {"id": 10, "name": "Bottled Water (24 Pack)", "price": 5.99, "stock": 12},
+    {"id": 11, "name": "Greek Yogurt (32 oz)", "price": 4.79, "stock": 17},
+    {"id": 12, "name": "Cereal (Family Size)", "price": 4.99, "stock": 15},
+]
     INVENTORY_FILE.write_text(json.dumps(default_inventory, indent=4))
 
 if not USER_FILE.exists():
