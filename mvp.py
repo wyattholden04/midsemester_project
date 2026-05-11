@@ -431,7 +431,7 @@ def page_orders():
 
                     with col_fav:
 
-    is_favorited = any(
+        is_favorited = any(
         favorite["id"] == product["id"]
         for favorite in st.session_state.favorites
     )
