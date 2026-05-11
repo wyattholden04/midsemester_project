@@ -4,10 +4,6 @@ from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
@@ -612,7 +608,7 @@ def page_ai_assistant():
             st.error("Please enter a question.")
             return
 
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = st.secrets("OPENAI_API_KEY")
 
         if not api_key:
             st.error("OPENAI_API_KEY was not found. Check your .env file.")
