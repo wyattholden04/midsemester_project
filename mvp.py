@@ -431,25 +431,22 @@ def page_orders():
 
                     with col_fav:
 
-        is_favorited = any(
-        favorite["id"] == product["id"]
-        for favorite in st.session_state.favorites
-    )
+                            with col_fav:
+                        is_favorited = any(
+                            favorite["id"] == product["id"]
+                            for favorite in st.session_state.favorites
+                        )
 
-    if is_favorited:
-
-        if st.button(
-            "⭐ Favorited",
-            key=f"unfavorite_{product['id']}"
-        ):
-
-            remove_from_favorites(product["id"])
-
-            st.success(
-                f"{product['name']} removed from favorites."
-            )
-
-            st.rerun()
+                        if is_favorited:
+                            if st.button("⭐ Favorited", key=f"unfavorite_{product['id']}"):
+                                remove_from_favorites(product["id"])
+                                st.success(f"{product['name']} removed from favorites.")
+                                st.rerun()
+                        else:
+                            if st.button("☆ Favorite", key=f"favorite_{product['id']}"):
+                                add_to_favorites(product)
+                                st.success(f"{product['name']} added to favorites.")
+                                st.rerun()
 
     else:
 
