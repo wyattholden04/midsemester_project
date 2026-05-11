@@ -3,12 +3,11 @@ import json
 from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
-import os
 
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
 USER_FILE = Path("users.json")
-INVENTORY_FILE = Path("inventory.json")
+INVENTORY_FILE = Path("inventory.project.json")
 ORDERS_FILE = Path("orders.json")
 
 CATEGORY_ICONS = {
@@ -431,10 +430,21 @@ def page_orders():
                             add_to_cart(product, quantity)
 
                     with col_fav:
-                        if st.button("⭐ Favorite", key=f"favorite_{product['id']}"):
-                            add_to_favorites(product)
+                        is_favorited = any(
+                            favorite["id"] == product["id"]
+                            for favorite in st.session_state.favorites
+                        )
 
-
+                        if is_favorited:
+                            if st.button("⭐ Favorited", key=f"unfavorite_{product['id']}"):
+                                remove_from_favorites(product["id"])
+                                st.success(f"{product['name']} removed from favorites.")
+                                st.rerun()
+                        else:
+                            if st.button("☆ Favorite", key=f"favorite_{product['id']}"):
+                                add_to_favorites(product)
+                                st.success(f"{product['name']} added to favorites.")
+                                st.rerun()
 def page_favorites():
     st.header("⭐ Favorite Items")
 
@@ -608,37 +618,31 @@ def page_ai_assistant():
             st.error("Please enter a question.")
             return
 
-        api_key = st.secrets["OPENAI_API_KEY"]
-
-        if not api_key:
-            st.error("OPENAI_API_KEY was not found. Check your .env file.")
+        if "OPENAI_API_KEY" not in st.secrets:
+            st.error("Missing OPENAI_API_KEY in Streamlit secrets.")
             return
 
         try:
-            client = OpenAI(api_key=api_key)
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-            def build_ai_prompt(inventory_context: str) -> str:
-                return (
-                    "You are the AI Grocery Assistant for MISY350 Groceries.\n"
-                    "Answer user questions based ONLY on the inventory data provided below.\n"
-                    "If the answer is not in the inventory data, say you do not have enough information.\n"
-                    "Give a helpful answer in 3-6 sentences. Mention item names, prices, and stock when useful.\n\n"
-                    f"INVENTORY DATA:\n{inventory_context}"
-                )
+            response = client.responses.create(
+                model="gpt-4.1-mini",
+                input=f"""
+You are the AI Grocery Assistant for MISY350 Groceries.
 
-            ai_prompt = build_ai_prompt(inventory_text)
+Use only the inventory below when making recommendations.
 
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": ai_prompt},
-                    {"role": "user", "content": user_question}
-                ],
-                temperature=0.2,
-                max_tokens=1024
+Current inventory:
+{inventory_text}
+
+User question:
+{user_question}
+
+Give a helpful answer in 3-6 sentences. Mention item names, prices, and stock when useful.
+"""
             )
 
-            st.success(response.choices[0].message.content)
+            st.success(response.output_text)
 
         except Exception as e:
             st.error("The AI assistant could not respond.")
