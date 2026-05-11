@@ -60,6 +60,9 @@ if "user" not in st.session_state:
 if "cart" not in st.session_state:
     st.session_state.cart = []
 
+if "favorites" not in st.session_state:
+    st.session_state.favorites = []
+
 
 def register(username, password, role):
     users = load_users()
@@ -319,6 +322,31 @@ def add_to_cart(product, quantity):
     st.success(f"{product['name']} added to cart.")
 
 
+def add_to_favorites(product):
+    for favorite in st.session_state.favorites:
+        if favorite["id"] == product["id"]:
+            st.info(f"{product['name']} is already in your favorites.")
+            return
+
+    st.session_state.favorites.append({
+        "id": product["id"],
+        "name": product["name"],
+        "category": product.get("category", "Other"),
+        "price": product["price"],
+        "stock": product["stock"],
+        "image": product.get("image", "")
+    })
+
+    st.success(f"{product['name']} added to favorites.")
+
+
+def remove_from_favorites(product_id):
+    st.session_state.favorites = [
+        item for item in st.session_state.favorites
+        if item["id"] != product_id
+    ]
+
+
 def page_orders():
     inventory = load_inventory()
 
@@ -326,6 +354,11 @@ def page_orders():
 
     customer = st.session_state.user["username"]
     st.write(f"Ordering as: **{customer}**")
+
+    sort_choice = st.selectbox(
+        "Sort Products",
+        ["Default", "Price: Low to High", "Price: High to Low"]
+    )
 
     categories = sorted(
         set(item.get("category", "Other") for item in inventory if item["stock"] > 0)
@@ -350,6 +383,11 @@ def page_orders():
                 item for item in inventory
                 if item["stock"] > 0 and item.get("category", "Other") == category
             ]
+
+            if sort_choice == "Price: Low to High":
+                category_items = sorted(category_items, key=lambda item: item["price"])
+            elif sort_choice == "Price: High to Low":
+                category_items = sorted(category_items, key=lambda item: item["price"], reverse=True)
 
             columns = st.columns(3)
 
@@ -385,8 +423,70 @@ def page_orders():
 
                     st.write(f"Item Total: **${quantity * product['price']:.2f}**")
 
-                    if st.button("Add to Cart", key=f"add_{product['id']}"):
-                        add_to_cart(product, quantity)
+                    col_add, col_fav = st.columns(2)
+
+                    with col_add:
+                        if st.button("Add to Cart", key=f"add_{product['id']}"):
+                            add_to_cart(product, quantity)
+
+                    with col_fav:
+                        if st.button("⭐ Favorite", key=f"favorite_{product['id']}"):
+                            add_to_favorites(product)
+
+
+def page_favorites():
+    st.header("⭐ Favorite Items")
+
+    if not st.session_state.favorites:
+        st.info("You have not added any favorite items yet.")
+        return
+
+    inventory = load_inventory()
+
+    favorite_items = []
+
+    for favorite in st.session_state.favorites:
+        for item in inventory:
+            if item["id"] == favorite["id"]:
+                favorite_items.append(item)
+
+    columns = st.columns(3)
+
+    for index, product in enumerate(favorite_items):
+        with columns[index % 3]:
+            st.markdown(f"""
+                <div class="product-card">
+                    <div class="product-name">{product['name']}</div>
+                    <div class="product-divider"></div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if product.get("image"):
+                st.image(product["image"], width=220)
+
+            st.divider()
+
+            st.write(f"**Category:** {product.get('category', 'Other')}")
+            st.write(f"**Price:** ${product['price']:.2f}")
+            st.write(f"**Available Stock:** {product['stock']}")
+
+            if product["stock"] <= 0:
+                st.warning("Out of stock")
+            else:
+                quantity = st.number_input(
+                    "Quantity",
+                    min_value=1,
+                    max_value=int(product["stock"]),
+                    step=1,
+                    key=f"fav_quantity_{product['id']}"
+                )
+
+                if st.button("Add to Cart", key=f"fav_add_{product['id']}"):
+                    add_to_cart(product, quantity)
+
+            if st.button("Remove Favorite", key=f"remove_fav_{product['id']}"):
+                remove_from_favorites(product["id"])
+                st.rerun()
 
 
 def save_customer_order(cart, customer, total):
@@ -557,8 +657,10 @@ def page_profile(user):
         st.subheader("Activity")
         cart_items = len(st.session_state.cart)
         cart_total = sum(item["total"] for item in st.session_state.cart)
+        favorite_items = len(st.session_state.favorites)
 
         st.metric("Items in Cart", cart_items)
+        st.metric("Favorite Items", favorite_items)
         st.metric("Current Cart Total", f"${cart_total:.2f}")
 
     st.markdown("---")
@@ -596,10 +698,19 @@ def page_profile(user):
     st.markdown("---")
 
     if user["role"] == "user":
-        if st.button("Clear Shopping Cart"):
-            st.session_state.cart = []
-            st.success("Shopping cart cleared.")
-            st.rerun()
+        col_clear_cart, col_clear_fav = st.columns(2)
+
+        with col_clear_cart:
+            if st.button("Clear Shopping Cart"):
+                st.session_state.cart = []
+                st.success("Shopping cart cleared.")
+                st.rerun()
+
+        with col_clear_fav:
+            if st.button("Clear Favorites"):
+                st.session_state.favorites = []
+                st.success("Favorites cleared.")
+                st.rerun()
     else:
         st.write("Admins can manage inventory and customer orders from the admin tabs.")
 
@@ -609,6 +720,7 @@ def logout_button():
         st.session_state.logged_in = False
         st.session_state.user = None
         st.session_state.cart = []
+        st.session_state.favorites = []
         st.success("Logged out successfully.")
         st.rerun()
 
@@ -702,12 +814,15 @@ else:
             logout_button()
 
     else:
-        shop_tab, cart_tab, ai_tab, profile_tab, logout_tab = st.tabs(
-            ["🛍️ Shop", "🛒 Cart", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
+        shop_tab, favorites_tab, cart_tab, ai_tab, profile_tab, logout_tab = st.tabs(
+            ["🛍️ Shop", "⭐ Favorites", "🛒 Cart", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
         )
 
         with shop_tab:
             page_orders()
+
+        with favorites_tab:
+            page_favorites()
 
         with cart_tab:
             page_cart()
