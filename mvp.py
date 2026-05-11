@@ -429,9 +429,7 @@ def page_orders():
                         if st.button("Add to Cart", key=f"add_{product['id']}"):
                             add_to_cart(product, quantity)
 
-                    with col_fav:
-
-                            with col_fav:
+                     with col_fav:
                         is_favorited = any(
                             favorite["id"] == product["id"]
                             for favorite in st.session_state.favorites
