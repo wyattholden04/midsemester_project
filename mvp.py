@@ -608,7 +608,7 @@ def page_ai_assistant():
             st.error("Please enter a question.")
             return
 
-        api_key = st.secrets("OPENAI_API_KEY")
+        api_key = st.secrets["OPENAI_API_KEY"]
 
         if not api_key:
             st.error("OPENAI_API_KEY was not found. Check your .env file.")
