@@ -430,8 +430,41 @@ def page_orders():
                             add_to_cart(product, quantity)
 
                     with col_fav:
-                        if st.button("⭐ Favorite", key=f"favorite_{product['id']}"):
-                            add_to_favorites(product)
+
+    is_favorited = any(
+        favorite["id"] == product["id"]
+        for favorite in st.session_state.favorites
+    )
+
+    if is_favorited:
+
+        if st.button(
+            "⭐ Favorited",
+            key=f"unfavorite_{product['id']}"
+        ):
+
+            remove_from_favorites(product["id"])
+
+            st.success(
+                f"{product['name']} removed from favorites."
+            )
+
+            st.rerun()
+
+    else:
+
+        if st.button(
+            "☆ Favorite",
+            key=f"favorite_{product['id']}"
+        ):
+
+            add_to_favorites(product)
+
+            st.success(
+                f"{product['name']} added to favorites."
+            )
+
+            st.rerun()
 
 
 def page_favorites():
