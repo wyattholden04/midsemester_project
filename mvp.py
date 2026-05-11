@@ -1,12 +1,14 @@
 import streamlit as st
 import json
 from pathlib import Path
+from datetime import datetime
 from openai import OpenAI
 
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
 USER_FILE = Path("users.json")
 INVENTORY_FILE = Path("inventory.project.json")
+ORDERS_FILE = Path("orders.json")
 
 CATEGORY_ICONS = {
     "Dairy & Eggs": "🥛",
@@ -20,6 +22,9 @@ CATEGORY_ICONS = {
 
 if not USER_FILE.exists():
     USER_FILE.write_text(json.dumps([], indent=4))
+
+if not ORDERS_FILE.exists():
+    ORDERS_FILE.write_text(json.dumps([], indent=4))
 
 
 def load_users():
@@ -36,6 +41,14 @@ def load_inventory():
 
 def save_inventory(data):
     INVENTORY_FILE.write_text(json.dumps(data, indent=4))
+
+
+def load_orders():
+    return json.loads(ORDERS_FILE.read_text())
+
+
+def save_orders(data):
+    ORDERS_FILE.write_text(json.dumps(data, indent=4))
 
 
 if "logged_in" not in st.session_state:
@@ -244,6 +257,42 @@ def page_inventory():
             st.divider()
 
 
+def page_admin_orders():
+    st.header("📋 Customer Orders")
+
+    orders = load_orders()
+
+    if not orders:
+        st.info("No customer orders have been placed yet.")
+        return
+
+    total_orders = len(orders)
+    total_revenue = sum(order.get("total", 0) for order in orders)
+    placed_orders = sum(1 for order in orders if order.get("status") == "Placed")
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Orders", total_orders)
+    col2.metric("Total Sales", f"${total_revenue:.2f}")
+    col3.metric("Placed Orders", placed_orders)
+
+    st.markdown("---")
+
+    for order in reversed(orders):
+        st.subheader(f"Order #{order.get('order_id')} - {order.get('customer')}")
+
+        st.write(f"**Date:** {order.get('date')}")
+        st.write(f"**Status:** {order.get('status')}")
+        st.write(f"**Total:** ${order.get('total', 0):.2f}")
+
+        for item in order.get("items", []):
+            st.write(
+                f"- {item['name']} | Qty: {item['quantity']} | "
+                f"Price: ${item['price']:.2f} | Total: ${item['total']:.2f}"
+            )
+
+        st.divider()
+
+
 def add_to_cart(product, quantity):
     for cart_item in st.session_state.cart:
         if cart_item["id"] == product["id"]:
@@ -340,6 +389,26 @@ def page_orders():
                         add_to_cart(product, quantity)
 
 
+def save_customer_order(cart, customer, total):
+    orders = load_orders()
+
+    next_order_id = 1
+    if orders:
+        next_order_id = max(order.get("order_id", 0) for order in orders) + 1
+
+    order = {
+        "order_id": next_order_id,
+        "customer": customer,
+        "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "items": cart,
+        "total": round(total, 2),
+        "status": "Placed"
+    }
+
+    orders.append(order)
+    save_orders(orders)
+
+
 def page_cart():
     st.header("🛒 Cart & Checkout")
 
@@ -397,9 +466,13 @@ def page_cart():
                             inventory_item["stock"] -= cart_item["quantity"]
 
                 save_inventory(inventory)
+
+                customer = st.session_state.user["username"]
+                save_customer_order(st.session_state.cart, customer, cart_total)
+
                 st.session_state.cart = []
 
-                st.success("Order placed successfully! Inventory updated.")
+                st.success("Order placed successfully! Inventory and orders updated.")
                 st.rerun()
 
     with col_clear:
@@ -410,11 +483,6 @@ def page_cart():
 
 def page_ai_assistant():
     st.header("🤖 AI Grocery Assistant")
-
-    st.write(
-        "Ask for grocery ideas, budget-friendly suggestions, meal ideas, "
-        "or questions about current inventory."
-    )
 
     inventory = load_inventory()
 
@@ -529,7 +597,7 @@ def page_profile(user):
             st.success("Shopping cart cleared.")
             st.rerun()
     else:
-        st.write("Admins can manage inventory from the Inventory tab.")
+        st.write("Admins can manage inventory and customer orders from the admin tabs.")
 
 
 def logout_button():
@@ -608,12 +676,15 @@ else:
     welcome_header(user)
 
     if user["role"] == "admin":
-        inventory_tab, ai_tab, profile_tab, logout_tab = st.tabs(
-            ["📦 Inventory", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
+        inventory_tab, orders_tab, ai_tab, profile_tab, logout_tab = st.tabs(
+            ["📦 Inventory", "📋 Orders", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
         )
 
         with inventory_tab:
             page_inventory()
+
+        with orders_tab:
+            page_admin_orders()
 
         with ai_tab:
             page_ai_assistant()
