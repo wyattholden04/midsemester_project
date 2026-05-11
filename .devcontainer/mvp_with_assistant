@@ -2,12 +2,17 @@ import streamlit as st
 import json
 from pathlib import Path
 from datetime import datetime
-import anthropic
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 st.set_page_config(page_title="MISY350 Groceries", layout="wide")
 
 USER_FILE = Path("users.json")
-INVENTORY_FILE = Path("inventory.project.json")
+INVENTORY_FILE = Path("inventory.json")
 ORDERS_FILE = Path("orders.json")
 
 CATEGORY_ICONS = {
@@ -607,25 +612,37 @@ def page_ai_assistant():
             st.error("Please enter a question.")
             return
 
-        try:
-            client = anthropic.Anthropic()
+        api_key = os.getenv("OPENAI_API_KEY")
 
-            response = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                system=(
-                    "You are the AI Grocery Assistant for MISY350 Groceries. "
-                    "Use only the inventory below when making recommendations. "
-                    "Give a helpful answer in 3-6 sentences. "
-                    "Mention item names, prices, and stock when useful.\n\n"
-                    f"Current inventory:\n{inventory_text}"
-                ),
+        if not api_key:
+            st.error("OPENAI_API_KEY was not found. Check your .env file.")
+            return
+
+        try:
+            client = OpenAI(api_key=api_key)
+
+            def build_ai_prompt(inventory_context: str) -> str:
+                return (
+                    "You are the AI Grocery Assistant for MISY350 Groceries.\n"
+                    "Answer user questions based ONLY on the inventory data provided below.\n"
+                    "If the answer is not in the inventory data, say you do not have enough information.\n"
+                    "Give a helpful answer in 3-6 sentences. Mention item names, prices, and stock when useful.\n\n"
+                    f"INVENTORY DATA:\n{inventory_context}"
+                )
+
+            ai_prompt = build_ai_prompt(inventory_text)
+
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
                 messages=[
+                    {"role": "system", "content": ai_prompt},
                     {"role": "user", "content": user_question}
-                ]
+                ],
+                temperature=0.2,
+                max_tokens=1024
             )
 
-            st.success(response.content[0].text)
+            st.success(response.choices[0].message.content)
 
         except Exception as e:
             st.error("The AI assistant could not respond.")
