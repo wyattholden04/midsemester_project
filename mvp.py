@@ -472,8 +472,12 @@ def page_cart():
 
                 st.session_state.cart = []
 
-                st.success("Order placed successfully! Inventory and orders updated.")
-                st.rerun()
+                st.balloons()
+
+                st.success(
+                    f"🎉 Thank you, {customer}! "
+                    f"Your grocery order has been placed."
+                )
 
     with col_clear:
         if st.button("Clear Cart"):
