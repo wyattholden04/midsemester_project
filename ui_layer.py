@@ -1,4 +1,5 @@
 import streamlit as st
+from pathlib import Path
 
 from data_layer import (
     load_inventory,
@@ -145,6 +146,16 @@ def product_header_card(name, icon=""):
     """, unsafe_allow_html=True)
 
 
+def show_product_image(image_path):
+    if image_path:
+        full_image_path = Path(".devcontainer") / image_path
+
+        if full_image_path.exists():
+            st.image(str(full_image_path), width=220)
+        else:
+            st.warning(f"Missing image: {image_path}")
+
+
 def page_inventory():
     inventory = load_inventory()
 
@@ -185,8 +196,7 @@ def page_inventory():
 
         product_header_card(item["name"], icon)
 
-        if item.get("image"):
-            st.image(item["image"], width=220)
+        show_product_image(item.get("image"))
 
         st.divider()
 
@@ -312,9 +322,7 @@ def page_orders():
                 with columns[index % 3]:
                     product_header_card(product["name"])
 
-                    image_path = product.get("image")
-                    if image_path:
-                        st.image(image_path, width=220)
+                    show_product_image(product.get("image"))
 
                     st.divider()
 
@@ -406,8 +414,7 @@ def page_favorites():
         with columns[index % 3]:
             product_header_card(product["name"])
 
-            if product.get("image"):
-                st.image(product["image"], width=220)
+            show_product_image(product.get("image"))
 
             st.divider()
 
