@@ -129,6 +129,21 @@ def welcome_header(user):
     """, unsafe_allow_html=True)
 
 
+def sidebar_info(user):
+    st.sidebar.title("🛒 MISY350 Groceries")
+    st.sidebar.write(f"Logged in as: **{user['username']}**")
+    st.sidebar.write(f"Role: **{user['role']}**")
+    st.sidebar.divider()
+
+    if user["role"] == "admin":
+        st.sidebar.info("Admin tools: Inventory, Orders, AI Assistant")
+    else:
+        st.sidebar.info("User tools: Shop, Favorites, Cart, AI Assistant")
+
+    st.sidebar.divider()
+    st.sidebar.write("Built for MISY350")
+
+
 def footer():
     st.markdown("""
         <div class="footer">
@@ -725,6 +740,7 @@ def logged_in_page():
     user = st.session_state.user
 
     welcome_header(user)
+    sidebar_info(user)
 
     if user["role"] == "admin":
         inventory_tab, orders_tab, ai_tab, profile_tab, logout_tab = st.tabs(
