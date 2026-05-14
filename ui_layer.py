@@ -129,21 +129,6 @@ def welcome_header(user):
     """, unsafe_allow_html=True)
 
 
-def sidebar_info(user):
-    st.sidebar.title("🛒 MISY350 Groceries")
-    st.sidebar.write(f"Logged in as: **{user['username']}**")
-    st.sidebar.write(f"Role: **{user['role']}**")
-    st.sidebar.divider()
-
-    if user["role"] == "admin":
-        st.sidebar.info("Admin tools: Inventory, Orders, AI Assistant")
-    else:
-        st.sidebar.info("User tools: Shop, Favorites, Cart, AI Assistant")
-
-    st.sidebar.divider()
-    st.sidebar.write("Built for MISY350")
-
-
 def footer():
     st.markdown("""
         <div class="footer">
@@ -210,7 +195,6 @@ def page_inventory():
         icon = CATEGORY_ICONS.get(item.get("category", "Other"), "🛒")
 
         product_header_card(item["name"], icon)
-
         show_product_image(item.get("image"))
 
         st.divider()
@@ -336,7 +320,6 @@ def page_orders():
             for index, product in enumerate(category_items):
                 with columns[index % 3]:
                     product_header_card(product["name"])
-
                     show_product_image(product.get("image"))
 
                     st.divider()
@@ -428,7 +411,6 @@ def page_favorites():
     for index, product in enumerate(favorite_items):
         with columns[index % 3]:
             product_header_card(product["name"])
-
             show_product_image(product.get("image"))
 
             st.divider()
@@ -664,10 +646,13 @@ def page_profile(user):
                 st.success("Favorites cleared.")
                 st.rerun()
     else:
-        st.write("Admins can manage inventory and customer orders from the admin tabs.")
+        st.write("Admins can manage inventory and customer orders from the admin menu.")
 
 
-def logout_button():
+def logout_page():
+    st.header("🚪 Logout")
+    st.write("Click below to log out of MISY350 Groceries.")
+
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.user = None
@@ -740,55 +725,63 @@ def logged_in_page():
     user = st.session_state.user
 
     welcome_header(user)
-    sidebar_info(user)
+
+    st.sidebar.title("🛒 MISY350 Groceries")
+    st.sidebar.write(f"Logged in as: **{user['username']}**")
+    st.sidebar.write(f"Role: **{user['role']}**")
+    st.sidebar.divider()
 
     if user["role"] == "admin":
-        inventory_tab, orders_tab, ai_tab, profile_tab, logout_tab = st.tabs(
-            ["📦 Inventory", "📋 Orders", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
+        selected_page = st.sidebar.radio(
+            "Admin Navigation",
+            [
+                "📦 Inventory",
+                "📋 Orders",
+                "🤖 AI Assistant",
+                "👤 Profile",
+                "🚪 Logout"
+            ]
         )
 
-        with inventory_tab:
+        if selected_page == "📦 Inventory":
             page_inventory()
-
-        with orders_tab:
+        elif selected_page == "📋 Orders":
             page_admin_orders()
-
-        with ai_tab:
+        elif selected_page == "🤖 AI Assistant":
             page_ai_assistant()
-
-        with profile_tab:
+        elif selected_page == "👤 Profile":
             page_profile(user)
-
-        with logout_tab:
-            st.header("🚪 Logout")
-            st.write("Click below to log out of MISY350 Groceries.")
-            logout_button()
+        elif selected_page == "🚪 Logout":
+            logout_page()
 
     else:
-        shop_tab, favorites_tab, cart_tab, ai_tab, profile_tab, logout_tab = st.tabs(
-            ["🛍️ Shop", "⭐ Favorites", "🛒 Cart", "🤖 AI Assistant", "👤 Profile", "🚪 Logout"]
+        selected_page = st.sidebar.radio(
+            "Navigation",
+            [
+                "🛍️ Shop",
+                "⭐ Favorites",
+                "🛒 Cart",
+                "🤖 AI Assistant",
+                "👤 Profile",
+                "🚪 Logout"
+            ]
         )
 
-        with shop_tab:
+        if selected_page == "🛍️ Shop":
             page_orders()
-
-        with favorites_tab:
+        elif selected_page == "⭐ Favorites":
             page_favorites()
-
-        with cart_tab:
+        elif selected_page == "🛒 Cart":
             page_cart()
-
-        with ai_tab:
+        elif selected_page == "🤖 AI Assistant":
             page_ai_assistant()
-
-        with profile_tab:
+        elif selected_page == "👤 Profile":
             page_profile(user)
+        elif selected_page == "🚪 Logout":
+            logout_page()
 
-        with logout_tab:
-            st.header("🚪 Logout")
-            st.write("Click below to log out of MISY350 Groceries.")
-            logout_button()
-
+    st.sidebar.divider()
+    st.sidebar.caption("Built for MISY350")
     footer()
 
 
