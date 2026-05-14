@@ -2,6 +2,21 @@ from datetime import datetime
 from data_layer import load_users, save_users, load_orders, save_orders
 
 
+class InventoryItem:
+    def __init__(self, item_id, name, price, stock, category):
+        self.item_id = item_id
+        self.name = name
+        self.price = price
+        self.stock = stock
+        self.category = category
+
+    def is_low_stock(self):
+        return self.stock < 20
+
+    def total_value(self):
+        return round(self.price * self.stock, 2)
+
+
 def register(username, password, role):
     users = load_users()
 
@@ -108,3 +123,23 @@ def calculate_cart_total(cart):
 
 def calculate_total_items(cart):
     return sum(item["quantity"] for item in cart)
+
+
+def create_inventory_item_object(item):
+    return InventoryItem(
+        item["id"],
+        item["name"],
+        item["price"],
+        item["stock"],
+        item.get("category", "Other")
+    )
+
+
+def is_low_stock_item(item):
+    inventory_item = create_inventory_item_object(item)
+    return inventory_item.is_low_stock()
+
+
+def calculate_inventory_value(item):
+    inventory_item = create_inventory_item_object(item)
+    return inventory_item.total_value()
